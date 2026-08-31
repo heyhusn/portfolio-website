@@ -1,0 +1,33 @@
+{
+  "name": "husnain-portfolio",
+  "private": true,
+  "version": "1.2.0",
+  "type": "module",
+  "description": "Portfolio of Husnain Aslam \u2014 dark/lime design system, React + Vite, SRS v1.2 compliant WebGL avatar.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite",
+    "dev:api": "node backend/server.mjs",
+    "build": "node scripts/check-model-budget.mjs && vite build",
+    "build:nocheck": "vite build",
+    "preview": "vite preview",
+    "check:model": "node scripts/check-model-budget.mjs",
+    "postinstall": "node scripts/copy-decoders.mjs"
+  },
+  "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "@react-three/drei": "^9.114.3",
+    "@react-three/fiber": "^8.17.10",
+    "axios": "^1.20.0",
+    "framer-motion": "^13.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "three": "^0.169.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "vite": "^5.4.8"
+  }
+}

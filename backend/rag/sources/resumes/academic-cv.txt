@@ -1,0 +1,63 @@
+# Academic CV — research track
+
+Muhammad Husnain Aslam
+Curriculum Vitae
+Lahore, Pakistan | +92 322-4912179 | mhusnainaslam2003@gmail.com | linkedin.com/in/husnain-aslam | github.com/heyhusn
+RESEARCH INTERESTS
+Retrieval-grounded language systems and multimodal information retrieval; retrieval strategies for ambiguous, dense technical content; constrained agents that reason over external evidence rather than parametric memory; evaluation methodology for grounding and faithfulness; and applied machine learning for sustainability and education.
+EDUCATION
+B.S. Software Engineering — University of Management and Technology, Lahore	Nov 2022 – Sep 2026
+CGPA 3.94 / 4.00. Best Final Year Project Award, Department of Software Engineering.
+Final Year Project: an AI-supported e-learning platform for long-form academic content, with timestamped source references preserved for retrieved answers.
+Relevant coursework: Machine Learning, Natural Language Processing, Deep Learning, Data Structures & Algorithms, Software Design & Architecture, Database Systems, Computer Networks, Human–Computer Interaction.
+RESEARCH EXPERIENCE
+Lead Developer & First Author — VLVRAG: Vectorless Multimodal Video Retrieval, UMT	Mar 2026 – Present
+Designed a vectorless retrieval architecture for lecture video: adaptive evidence units segmented on signal and transition cues, OCR of on-screen text fused with ASR speech on a common frame grid, and a three-level Markdown ledger (lecture → topic → timed unit) built by a summary-augmented tree in place of a vector database.
+Retrieval unions deterministic timestamp resolution, two-stage tree traversal and BM25, reranked by a pedagogical evidence filter that scores cross-modal agreement and prioritises speech over slides where a lecturer corrects the displayed material.
+Evaluated on reconstructed ground truth from MIT OpenCourseWare lectures. Against a count-matched equal-spacing baseline, segmentation error fell from Pk 0.512 to 0.344 and WindowDiff 0.513 to 0.391 ; on a second, denser course the system reached 92.0 NMI against 74.2 for an oracle-K baseline under a single pre-fitted configuration.
+Solar PV Digital Twin — Applied ML for Solar Forecasting, UMT, 2026	solar-pv-digital-twin.vercel.app
+Built an automated pipeline acquiring and processing 5.5+ years of hourly meteorological data from the NASA POWER API, with physics-based feature engineering (solar zenith angles, clear-sky irradiance models) and time-based interpolation for missing sensor records.
+Trained and compared Random Forest, XGBoost and LSTM models for power-output forecasting across three climate regimes (Dhaka, Lahore, the Thar Desert), using SHAP for feature attribution and model interpretability.
+Deployed the selected model behind a FastAPI inference service with an interactive 3D visualisation of the simulated facility, making the model’s behaviour inspectable rather than opaque.
+Independent Research — Regulation of Cryptocurrency in Pakistan, UMT	May 2025 – Jun 2025
+Comparative policy analysis of Pakistan’s emerging digital-asset framework against the EU, Japan, Switzerland and the United States, covering licensing, investor protection and anti-money-laundering provisions, with drafted proposals on fraud, ransomware and money laundering.
+PUBLICATIONS & CONFERENCE PRESENTATIONS
+M. H. Aslam et al. “VLVRAG: Structure-Aware Vectorless Retrieval-Augmented Generation for Educational Video Question Answering.” Abstract accepted, International Conference on Advancing Sustainable Futures (ICASF) 2027, Abu Dhabi University. Full manuscript in preparation.
+APPLIED AI & MACHINE LEARNING PROJECTS
+Big Brains — Final Year Project & Startup, UMT (2025 – 2026)	bigbrainslearning.com
+Web and mobile platform delivering AI-supported learning over long-form academic content — recorded lectures and technical demonstrations — with role-separated student and teacher workflows, enrollment and progress modelling, live classes and payments.
+Serves as the applied testbed for the retrieval work in VLVRAG: answers to learner questions preserve timestamped source references back into the underlying lecture material rather than returning ungrounded summaries.
+Awarded Best Final Year Project by the Department of Software Engineering.
+ScholarMind — AI Research Companion (Android + FastAPI), 2026	scholar-ai-backend.vercel.app
+Research workflow tool that extracts paper text, produces structured analysis through an LLM behind a JSON-repair layer, and queries the OpenAlex API for literature discovery — supporting tiered reading modes, generated quizzes, citation-impact lookup, peer-review critique and multi-style reference export.
+Financial Sentiment Analysis — SBERT + Deep ANN	github.com/heyhusn/Financial-Sentimental-Analysis
+End-to-end NLP pipeline over a combined financial phrasebank and news/Twitter corpus: domain-aware preprocessing, SBERT semantic representation, a deep ANN classifier for three-class sentiment, and an interactive Streamlit inference interface.
+Further work — selected
+Bidirectional RNN text classifier trained and served as a FastAPI REST API; a TF-IDF and OneVsRest KNN resume-screening classifier deployed via Streamlit; a privacy-preserving classroom attention monitor fusing head-pose estimation and Eye Aspect Ratio entirely client-side in WebAssembly; and Hariyali, an Android gardening assistant with image-based plant-disease recognition and location-based suitability analysis.
+Systems & software engineering — selected
+A Java e-commerce system built on Factory, Observer, Singleton and Strategy patterns; a legacy-code refactoring study replacing switch logic with polymorphism and the State pattern; and a concurrent multi-source job-aggregation pipeline with relevance scoring and deduplication.
+TEACHING EXPERIENCE
+Backend Development Lecturer — Big Brains, Remote	Dec 2025 – Present
+Author and teach a project-driven backend engineering curriculum — API design, data modelling, authentication, validation and modular architecture — building the reference implementations the course works through.
+Review and debug learners’ code, giving structured feedback on architecture and correctness.
+Computer Science Lecturer — KIPS Virtual, Lahore	Jun 2024 – Feb 2025
+Taught C++, object-oriented programming fundamentals and computer networks; mentored students through code review and individual feedback sessions.
+TECHNICAL SKILLS
+Machine Learning: Scikit-learn, XGBoost, Random Forest, KNN/OneVsRest, LSTM, Bi-RNN, deep ANN, TensorFlow, SHAP interpretability, model evaluation and significance testing
+NLP & Retrieval: RAG architectures, LangChain, Ollama, ChromaDB, SBERT embeddings, BM25, TF-IDF, NLTK, OCR/ASR fusion, LLM-as-judge evaluation
+Data: Pandas, NumPy, Matplotlib, Seaborn, feature engineering, public-API pipelines (NASA POWER, OpenAlex), pdfplumber
+Engineering: Python, FastAPI, Django, Docker, REST APIs, WebSockets, SQLAlchemy; Java, Kotlin, C/C++, SQL, JavaScript; React, Android, Firebase
+Research tools: Git/GitHub, LaTeX-ready manuscript preparation, Streamlit, Figma, Jira, Agile/Scrum
+Languages: English (professional working proficiency), Urdu (native)
+AWARDS & HONOURS
+Best Final Year Project Award, Department of Software Engineering, UMT (2026).
+Rector’s Merit Award, UMT (2024, 2025, 2026) — awarded for sustained academic standing.
+Dean’s Merit Award, UMT (2023, 2026).
+PROFESSIONAL DEVELOPMENT
+J.P. Morgan & Co. Software Engineering Job Simulation.
+Business Communication and AI for Professionals, Lahore University of Management Sciences (LUMS).
+REFERENCES
+Dr. Amber Sultan — Associate Professor, Department of Software Engineering, UMT
+Dr. Muhammad Asad Arshed — Assistant Professor, Department of Software Engineering, UMT
+Waqar Ashiq — Lecturer, Department of Software Engineering, UMT
+Bilal Arif — Lecturer, Department of Software Engineering, UMT

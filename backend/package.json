@@ -1,0 +1,29 @@
+{
+  "name": "portfolio-admin-backend",
+  "version": "1.0.0",
+  "description": "Admin CMS API for the portfolio \u2014 Express + SQLite, serves and edits the site content the React app reads.",
+  "main": "server.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "seed": "node seed.mjs",
+    "migrate": "node migrate-resume-blocks.mjs",
+    "ingest": "node rag/ingest.mjs",
+    "refresh:github": "node rag/refresh-github.mjs",
+    "export:index": "node rag/export-index.mjs",
+    "setup": "node migrate-resume-blocks.mjs && node rag/ingest.mjs && node rag/export-index.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "jsonwebtoken": "^9.0.3"
+  }
+}

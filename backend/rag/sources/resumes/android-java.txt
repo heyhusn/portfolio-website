@@ -1,0 +1,40 @@
+# Resume — Android / Java track
+
+Muhammad Husnain Aslam
+Android & Java Developer
+Lahore, Pakistan | +92 322-4912179 | mhusnainaslam2003@gmail.com | linkedin.com/in/husnain-aslam | github.com/heyhusn
+SUMMARY
+Android developer building multi-screen Java apps backed by Firebase Auth and Firestore, talking to REST services over Retrofit — and comfortable writing those services too. Strong Java fundamentals: OOP, SOLID, design patterns and legacy-code refactoring, plus UI/UX prototyping in Figma. Software Engineering degree (CGPA 3.94/4.00) and 1.5+ years professionally teaching programming and backend engineering. Available for on-site work in Lahore.
+EXPERIENCE
+Backend Development Lecturer — Big Brains, Remote	Dec 2025 – Present
+Build and walk through reference FastAPI services — modular project structure, SQLAlchemy models, Pydantic validation, JWT authentication, middleware and dependency injection — as the working codebase the course is taught from.
+Design project-driven coursework and review learners’ code, debugging real defects and enforcing clean architecture and industry practice.
+Computer Science Lecturer — KIPS Virtual, Lahore	Jun 2024 – Feb 2025
+Taught C++, object-oriented programming fundamentals and computer networks; mentored students through code reviews and feedback sessions.
+ANDROID & JAVA PROJECTS
+ScholarMind — AI Research Companion (Android + FastAPI)	scholar-ai-backend.vercel.app
+Multi-screen Java client with Firebase Google/email authentication, Firestore-backed paper history and chat state, Retrofit + OkHttp networking and Navigation Fragment flows across upload, reading, quiz and review screens.
+Built a text-to-speech podcast player with foreground media notification controls, playback-speed selection and transcript navigation, plus animated upload progress and staggered card entrance transitions.
+Own the FastAPI backend the app consumes — PDF/DOCX extraction, AI analysis and reference export — with separate debug and release base-URL configuration for local and deployed environments.
+Hariyali — AI Gardening Android App
+Android app for urban gardeners: AI image recognition for plant-disease detection, location-based plant suitability from environmental data, an AI chat assistant, and scheduled care reminders via real-time notifications.
+Implemented the MyGarden module (add, search, update and delete personal plants with tailored care tracking) on Firebase, and designed the full Figma prototype — auto layouts, components and variants, responsive grids, interactive flows.
+RiderFlow — Ride-Management Android App
+Ride booking and management application structured on MVC to keep view, controller and data layers separable and testable.
+BookStore Management System — Java, OOP & Design Patterns
+Admin and customer e-commerce system applying Factory, Observer, Singleton and Strategy patterns — pluggable Cash/Card/PayPal payment strategies, new-arrival notifications, session-scoped cart — written to SOLID with full input validation.
+Video Store Refactoring Kata — Legacy Java Modernisation
+Refactored procedural legacy code into an object-oriented design: replaced switch logic with polymorphic price classes, applied the State pattern for dynamic pricing, and used Extract Method and Move Method to resolve long methods and feature envy.
+Big Brains — E-Learning Web & Mobile Platform (Final Year Project / Startup)	bigbrainslearning.com
+Student and teacher apps over a shared platform: authentication, enrollments, progress tracking, payments and live video classes.
+TECHNICAL SKILLS
+Android: Java, Kotlin, AndroidX, Material, ConstraintLayout, Fragments & Navigation, Retrofit, OkHttp, Firebase Auth & Firestore, Google Sign-In, media notifications, TTS, Gradle (KTS)
+Java & Design: OOP, SOLID, design patterns (Factory, Observer, Singleton, Strategy, State), refactoring, MVC, Spring Boot (basic)
+Backend & APIs: Python, FastAPI, Django, REST API design, JWT auth, SQLAlchemy, WebSockets
+Databases: Firebase / Firestore, MySQL, MongoDB, SQLite
+Tools & Design: Android Studio, Git/GitHub, Figma (prototyping, auto layout, variants), Selenium, Agile/Scrum, Jira, Azure DevOps
+Also: JavaScript, C/C++, SQL; React; ML & RAG systems (Scikit-learn, XGBoost, LangChain)
+EDUCATION & ACHIEVEMENTS
+B.S. Software Engineering — University of Management and Technology, Lahore	Nov 2022 – Sep 2026
+CGPA 3.94/4.00 · Best Final Year Project Award, Software Engineering Department · Rector’s Merit Award (2024, 2025, 2026) · Dean’s Merit Award (2023, 2026).
+JP Morgan & Co. Software Engineering Job Simulation · Business Communication and AI for Professionals, LUMS.

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Husnain Aslam — Software &amp; AI Engineer</title>
+<meta name="description" content="Husnain Aslam — software and AI engineer in Lahore. Retrieval systems, on-device ML and production web platforms.">
+<meta name="theme-color" content="#1a1a1b">
+
+<link rel="preload" href="/assets/fonts/antonio-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/inter-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/assets/img/avatar.svg">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Husnain Aslam — Software &amp; AI Engineer">
+<meta property="og:description" content="Retrieval systems, on-device ML and production web platforms.">
+<meta property="og:image" content="/assets/img/avatar-poster.webp">
+
+<!--
+  ADR-09 / FR-AVT-01: the capability tier is resolved before first paint so the
+  document never flashes a motion state it is about to leave. This inline script
+  is the only script that runs eagerly; everything else is deferred or lazy.
+  It writes data-tier and data-motion on <html>; CSS and React both read them.
+-->
+<script>
+(function () {
+  var d = document.documentElement;
+  var tier = "LITE";
+  var motion = "FULL";
+  try {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) motion = "OFF";
+    var mem = navigator.deviceMemory || 0;
+    var cores = navigator.hardwareConcurrency || 0;
+    var coarse = window.matchMedia("(pointer: coarse)").matches;
+    var conn = navigator.connection || {};
+    var slow = conn.saveData === true || /^(slow-)?2g$/.test(conn.effectiveType || "");
+    var narrow = Math.min(screen.width, screen.height) < 640;
+
+    if (slow) tier = "LITE";
+    else if (mem >= 8 && cores >= 8 && !coarse && !narrow) tier = "FULL";
+    else if ((mem >= 4 || mem === 0) && cores >= 4 && !narrow) tier = "MID";
+    else tier = "LITE";
+  } catch (e) { /* stay on LITE */ }
+  d.setAttribute("data-tier", tier);
+  d.setAttribute("data-motion", motion);
+})();
+</script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<!--
+  FR-AVT-02 / FR-WGL: with JavaScript disabled the visitor still gets the
+  signature scene as a static poster, in the same box, with no layout shift.
+  The React app removes this block on mount.
+-->
+<noscript>
+  <link rel="stylesheet" href="/noscript.css">
+  <div class="ns">
+    <header class="ns__bar">
+      <img class="ns__avatar" src="/assets/img/avatar.svg" alt="">
+      <span class="ns__name">Husnain Aslam</span>
+    </header>
+    <main class="ns__main">
+      <p class="ns__kicker">Portfolio — 2026</p>
+      <h1 class="ns__title">Software &amp; AI Engineer</h1>
+      <img class="ns__poster" src="/assets/img/avatar-poster.webp" alt="Portrait of Husnain Aslam">
+      <p class="ns__lead">
+        Software engineer in Lahore building retrieval systems, on-device ML and
+        production web platforms. This page needs JavaScript for navigation —
+        the content below is the short version.
+      </p>
+      <ul class="ns__list">
+        <li>Big Brains — e-learning web and mobile platform</li>
+        <li>ScholarMind — Android + FastAPI research assistant</li>
+        <li>Solar PV Digital Twin — physics-informed forecasting</li>
+        <li>Real-Time Attention Tracking — client-side MediaPipe pipeline</li>
+      </ul>
+      <p class="ns__lead">
+        <a href="mailto:mhusnainaslam2003@gmail.com">mhusnainaslam2003@gmail.com</a>
+      </p>
+    </main>
+  </div>
+</noscript>
+
+<script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

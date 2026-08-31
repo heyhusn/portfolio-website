@@ -1,0 +1,40 @@
+# Resume — Software Engineer track
+
+Muhammad Husnain Aslam
+Software Engineer
+Lahore, Pakistan | +92 322-4912179 | mhusnainaslam2003@gmail.com | linkedin.com/in/husnain-aslam | github.com/heyhusn
+SUMMARY
+Lahore-based software engineer with a Software Engineering degree (CGPA 3.94/4.00) and 1.5+ years spent professionally teaching backend engineering, alongside a portfolio of deployed full-stack products. Comfortable owning a feature end to end across Python/FastAPI, Django, React and Android — REST API design, authentication, database modelling, Docker and cloud deployment — on a strong foundation in data structures, OOP and C++. Available for on-site work in Lahore.
+EXPERIENCE
+Backend Development Lecturer — Big Brains, Remote	Dec 2025 – Present
+Build and walk through reference FastAPI services — modular project structure, SQLAlchemy models, Pydantic validation, JWT authentication, middleware and dependency injection — as the working codebase the course is taught from.
+Design project-driven coursework and review learners’ code, debugging real defects and enforcing clean architecture and industry practice.
+Computer Science Lecturer — KIPS Virtual, Lahore	Jun 2024 – Feb 2025
+Taught C++, programming fundamentals and computer networks; mentored students through code reviews and feedback sessions that measurably improved outcomes.
+PROJECTS
+Big Brains — E-Learning Web & Mobile Platform (Final Year Project / Startup)	bigbrainslearning.com
+Full-stack platform with separate student and teacher dashboards for courses, enrollments, progress tracking, live video classes and secure payments, plus AI-assisted learning support.
+Solar PV Digital Twin — Full-Stack ML Platform	solar-pv-digital-twin.vercel.app
+Digital twin predicting real-time solar power output for Dhaka, Lahore and the Thar Desert; automated pipeline over 5.5+ years of hourly NASA POWER data with physics-based feature engineering.
+Benchmarked Random Forest, XGBoost (SHAP) and LSTM models, served through a FastAPI inference API streaming live predictions.
+Built the React + Vite frontend with an interactive Three.js / React Three Fiber 3D facility view and Recharts dashboards; containerised with Docker and deployed on Vercel.
+Scholar AI — Research Assistant Mobile App	scholar-ai-backend.vercel.app
+Android app backed by a FastAPI service and a custom document-processing pipeline that automates literature search, extraction and summarisation; deployed on Vercel.
+Real-Time Attention Tracking System — Web
+Privacy-first classroom engagement tool using MediaPipe Face Mesh, WebAssembly and FastAPI WebSockets for low-latency, fully client-side inference.
+VLVRAG — Multimodal Vectorless Video Retrieval System
+Lead developer of a hierarchical page-index retrieval approach for video content that removes the vector database and reduces hallucination.
+Abstract accepted at ICASF 2027 (International Conference on Advancing Sustainable Futures), Abu Dhabi University; full paper in progress.
+Hariyali — AI-Powered Plant Care Android App
+Android app that identifies plants from photos and guides urban users through care routines, backed by an on-device AI model and Firebase.
+TECHNICAL SKILLS
+Languages: Python, Java, Kotlin, JavaScript, C/C++, SQL
+Backend: FastAPI, Django, Spring Boot (basic), REST APIs, JWT auth, SQLAlchemy, WebSockets
+Frontend & Mobile: React, Vite, Tailwind CSS, Three.js, HTML/CSS, Android (Java/Kotlin)
+Data & AI: Pandas, NumPy, Scikit-learn, XGBoost, TensorFlow, LangChain, RAG systems, NLP
+Databases & Cloud: MySQL, MongoDB, Firebase, AWS, Docker, Vercel, Railway
+Practices & Tools: Git/GitHub, Agile/Scrum, Jira, Azure DevOps, Selenium, Figma
+EDUCATION & ACHIEVEMENTS
+B.S. Software Engineering — University of Management and Technology, Lahore	Nov 2022 – Sep 2026
+CGPA 3.94/4.00 · Best Final Year Project Award, Software Engineering Department · Rector’s Merit Award (2024, 2025, 2026) · Dean’s Merit Award (2023, 2026).
+JP Morgan & Co. Software Engineering Job Simulation · Business Communication and AI for Professionals, LUMS.

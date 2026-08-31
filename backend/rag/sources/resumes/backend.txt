@@ -1,0 +1,40 @@
+# Resume — Backend track
+
+Muhammad Husnain Aslam
+Backend Engineer
+Lahore, Pakistan | +92 322-4912179 | mhusnainaslam2003@gmail.com | linkedin.com/in/husnain-aslam | github.com/heyhusn
+SUMMARY
+Backend engineer who designs and ships production APIs in Python — RESTful design, JWT authentication, ORM data modelling, request validation, WebSockets and third-party API integration, containerised with Docker and deployed to cloud platforms. 1.5+ years professionally teaching backend engineering, on a Software Engineering degree (CGPA 3.94/4.00) with strong grounding in design patterns, SOLID and data structures. Available for on-site work in Lahore.
+EXPERIENCE
+Backend Development Lecturer — Big Brains, Remote	Dec 2025 – Present
+Build and walk through reference FastAPI services — modular project structure, SQLAlchemy models, Pydantic validation, JWT authentication, middleware and dependency injection — as the working codebase the course is taught from.
+Design project-driven coursework and review learners’ code, debugging real defects and enforcing clean architecture and industry practice.
+Computer Science Lecturer — KIPS Virtual, Lahore	Jun 2024 – Feb 2025
+Taught C++, programming fundamentals and computer networks; mentored students through code reviews and feedback sessions.
+BACKEND PROJECTS
+ScholarMind API — FastAPI Research Service	scholar-ai-backend.vercel.app/docs
+Modular FastAPI service (routing, Pydantic models, CORS, OpenAPI docs) backing an Android client over Retrofit — endpoints for PDF/DOCX extraction, summarisation, chat, quiz generation, peer review and reference export.
+Integrated third-party APIs (DeepSeek, OpenAlex) with a JSON-repair layer for malformed upstream responses and a Firestore fallback for missing request context, keeping endpoints resilient rather than failing the client.
+Deployed serverless on Vercel with environment-based secrets and separate debug/release base-URL configuration.
+Solar PV Digital Twin — ML Inference Backend	solar-pv-digital-twin.vercel.app
+Built an automated ingestion pipeline over 5.5+ years of hourly NASA POWER API data, with interpolation for missing records, feeding a FastAPI inference service that streams real-time predictions to the client.
+Containerised the service with Docker and deployed alongside a React frontend.
+Big Brains — E-Learning Platform (Final Year Project / Startup)	bigbrainslearning.com
+Full-stack platform with role-separated student and teacher dashboards: authentication, course and enrollment modelling, progress tracking, payment integration and live video classes.
+Real-Time Attention Tracking — WebSocket Service
+FastAPI WebSocket backend ingesting per-student score streams with rolling history and concurrent connections, designed so inference stays client-side and only numeric scores cross the wire.
+BookStore Management System — Java, OOP & Design Patterns
+Console e-commerce system applying Factory, Observer, Singleton and Strategy patterns across admin and customer roles — pluggable payment strategies, arrival notifications, session-scoped cart — written to SOLID principles.
+Smart Job Scraper — Data Aggregation Pipeline
+Concurrent multi-source pipeline over 8 job boards and public APIs with dynamic query expansion, a relevance-scoring engine that rejects irrelevant postings, and URL deduplication.
+TECHNICAL SKILLS
+Backend: Python, FastAPI, Django, REST API design, Pydantic validation, SQLAlchemy ORM, JWT auth, middleware, dependency injection, WebSockets, Spring Boot (basic)
+Databases: MySQL, MongoDB, SQLite, Firebase / Firestore, ChromaDB
+Architecture: Design patterns (Factory, Observer, Singleton, Strategy), SOLID, MVC, modular structure, API integration
+DevOps & Deployment: Docker, AWS, Vercel (serverless), Railway, Git/GitHub, Agile/Scrum, Jira, Azure DevOps
+Testing & Tooling: Selenium automation, endpoint testing, OpenAPI/Swagger, Postman-style API debugging
+Other: Java, Kotlin, JavaScript, C/C++, SQL; React, Android; ML & RAG systems (Scikit-learn, XGBoost, LangChain)
+EDUCATION & ACHIEVEMENTS
+B.S. Software Engineering — University of Management and Technology, Lahore	Nov 2022 – Sep 2026
+CGPA 3.94/4.00 · Best Final Year Project Award, Software Engineering Department · Rector’s Merit Award (2024, 2025, 2026) · Dean’s Merit Award (2023, 2026) · JP Morgan & Co. Software Engineering Job Simulation.
+Research: abstract accepted at ICASF 2027, Abu Dhabi University, on a vectorless hierarchical retrieval architecture for video (VLVRAG).

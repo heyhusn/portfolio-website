@@ -1,0 +1,39 @@
+# Resume — AI Engineer track
+
+Muhammad Husnain Aslam
+AI / Machine Learning Engineer
+Lahore, Pakistan | +92 322-4912179 | mhusnainaslam2003@gmail.com | linkedin.com/in/husnain-aslam | github.com/heyhusn
+SUMMARY
+AI engineer building end-to-end machine learning systems — data pipelines and feature engineering through model training, evaluation and production serving. Hands-on with classical ML and deep learning (XGBoost, LSTM, Bi-RNN, SHAP), RAG pipelines and NLP, served via FastAPI and containerised for deployment. Software Engineering degree, CGPA 3.94/4.00, with an accepted conference abstract. Available for on-site work in Lahore.
+EXPERIENCE
+Backend Development Lecturer — Big Brains, Remote	Dec 2025 – Present
+Build and walk through reference FastAPI services — modular project structure, SQLAlchemy models, Pydantic validation, JWT authentication, middleware and dependency injection — as the working codebase the course is taught from.
+Design project-driven coursework and review learners’ code, debugging real defects and enforcing clean architecture and industry practice.
+Computer Science Lecturer — KIPS Virtual, Lahore	Jun 2024 – Feb 2025
+Taught C++, programming fundamentals and computer networks; mentored students through code reviews and feedback sessions.
+AI / ML PROJECTS
+Solar PV Digital Twin — End-to-End ML Forecasting Platform	solar-pv-digital-twin.vercel.app
+Automated pipeline over 5.5+ years of hourly NASA POWER meteorological data, with physics-based feature engineering (solar zenith angles, clear-sky irradiance models) and time-based interpolation for missing sensor data.
+Trained and evaluated Random Forest, XGBoost and LSTM models to forecast generation across three climates, using SHAP for feature attribution and production model selection.
+Served the model through a FastAPI inference API streaming real-time predictions; Dockerised and deployed with a React / Three.js 3D simulation of the facility.
+VLVRAG — Vectorless Multimodal Video Retrieval (Research)	Mar 2026 – Present
+Designed a PageIndex retrieval engine replacing embedding search with a hierarchical document tree and LLM-guided traversal — preserving context instead of fragmenting it into chunks — over OCR/ASR-fused evidence units.
+Abstract accepted at ICASF 2027 (International Conference on Advancing Sustainable Futures), Abu Dhabi University; full paper in progress.
+ScholarMind — LLM Research Assistant (Android + FastAPI)	scholar-ai-backend.vercel.app
+FastAPI backend extracting paper text with pdfplumber, calling DeepSeek for structured analysis behind a JSON-repair layer, and querying the OpenAlex API for live literature discovery.
+Powers summaries, tiered chat modes, generated flashcards and quizzes, peer-review critique and multi-style reference export, with Firestore-backed history.
+RAG System — LangChain · Ollama · ChromaDB
+Document QA pipeline: PyPDFLoader extraction, overlapping chunk splitting for context retention, Ollama embeddings into a Chroma vector store, and grounded answer generation with a local gemma3 model.
+NLP & Deep Learning Portfolio — TensorFlow, Scikit-learn, Streamlit
+Financial sentiment classifier over SBERT embeddings with a deep ANN head; a Bidirectional RNN text classifier served as a FastAPI REST API; and a TF-IDF + OneVsRest KNN resume screener deployed as a Streamlit app with NLTK preprocessing.
+Real-Time Attention Tracking — Computer Vision
+Fuses head-pose estimation (yaw/pitch) and Eye Aspect Ratio into a normalised attention score, running MediaPipe Face Mesh client-side via WebAssembly — no video leaves the browser — streamed over FastAPI WebSockets.
+TECHNICAL SKILLS
+ML & Deep Learning: Scikit-learn, XGBoost, Random Forest, KNN/OneVsRest, LSTM, Bi-RNN, deep ANN, TensorFlow, SHAP, model evaluation
+LLM & NLP: RAG pipelines, LangChain, Ollama, ChromaDB, SBERT embeddings, DeepSeek & OpenAlex APIs, TF-IDF, NLTK, CrewAI
+Data Engineering: Pandas, NumPy, feature engineering, API pipelines (NASA POWER), pdfplumber/PyPDF2, Matplotlib, Seaborn
+Serving & Deployment: FastAPI, WebSockets, Streamlit, Docker, AWS, Vercel, Railway, Django, SQLAlchemy, JWT auth
+Other: Python, Java, Kotlin, JavaScript, C/C++, SQL; React, Three.js, Android, Firebase; Git, Agile/Scrum
+EDUCATION & ACHIEVEMENTS
+B.S. Software Engineering — University of Management and Technology, Lahore	Nov 2022 – Sep 2026
+CGPA 3.94/4.00 · Best Final Year Project Award, Software Engineering Department · Rector’s Merit Award (2024, 2025, 2026) · Dean’s Merit Award (2023, 2026) · JP Morgan & Co. Software Engineering Job Simulation.

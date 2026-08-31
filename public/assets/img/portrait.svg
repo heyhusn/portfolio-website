@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 880" width="650" height="880">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#6f6f68"/><stop offset="0.55" stop-color="#4b4b46"/><stop offset="1" stop-color="#26262a"/>
+</linearGradient>
+<linearGradient id="suit" x1="0.2" y1="0" x2="0.8" y2="1">
+<stop offset="0" stop-color="#d8d3c6"/><stop offset="1" stop-color="#8e897c"/>
+</linearGradient>
+<linearGradient id="skin" x1="0.3" y1="0" x2="0.8" y2="1">
+<stop offset="0" stop-color="#8d7461"/><stop offset="1" stop-color="#5d4c3f"/>
+</linearGradient>
+<radialGradient id="halo" cx="0.5" cy="0.3" r="0.6">
+<stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<rect width="650" height="880" fill="url(#bg)"/>
+<rect width="650" height="880" fill="url(#halo)"/>
+<!-- shoulders / jacket -->
+<path d="M75 880 C90 620 200 560 260 545 L390 545 C452 560 562 620 578 880 Z" fill="url(#suit)"/>
+<path d="M260 545 L325 700 L390 545 L352 532 L325 560 L298 532 Z" fill="#2b2b2f"/>
+<path d="M298 532 L325 560 L325 700 L268 556 Z" fill="#efeade" opacity="0.85"/>
+<path d="M352 532 L325 560 L325 700 L382 556 Z" fill="#efeade" opacity="0.85"/>
+<!-- neck -->
+<path d="M287 470 h76 v75 c-20 22 -56 22 -76 0 Z" fill="#4c3d32"/>
+<!-- head -->
+<ellipse cx="325" cy="360" rx="103" ry="128" fill="url(#skin)"/>
+<!-- hair -->
+<path d="M222 350 C216 246 268 200 325 200 C382 200 434 246 428 350 C420 300 392 268 325 268 C258 268 230 300 222 350 Z" fill="#221c18"/>
+<!-- beard -->
+<path d="M240 372 C246 470 282 502 325 502 C368 502 404 470 410 372 C398 448 372 462 325 462 C278 462 252 448 240 372 Z" fill="#241d18" opacity="0.92"/>
+<!-- brows + eyes -->
+<rect x="264" y="342" width="46" height="7" rx="3.5" fill="#1d1713"/>
+<rect x="340" y="342" width="46" height="7" rx="3.5" fill="#1d1713"/>
+<ellipse cx="287" cy="368" rx="13" ry="8" fill="#efeae2"/><circle cx="287" cy="368" r="5.4" fill="#241c14"/>
+<ellipse cx="363" cy="368" rx="13" ry="8" fill="#efeae2"/><circle cx="363" cy="368" r="5.4" fill="#241c14"/>
+<path d="M318 380 l7 42 l-14 4" fill="none" stroke="#3d3129" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#g)" opacity="0.10"/>
+</svg>

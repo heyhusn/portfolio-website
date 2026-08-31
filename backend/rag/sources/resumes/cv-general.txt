@@ -1,0 +1,68 @@
+# General CV
+
+Muhammad Husnain Aslam
+Lahore, Pakistan | +92 322-4912179 | mhusnainaslam2003@gmail.com | linkedin.com/in/husnain-aslam-0a959a1a7 | github.com/heyhusn
+PROFESSIONAL SUMMARY
+Innovative final-year Software Engineering student with a strong academic record (CGPA 3.93/4.0) and hands-on expertise in Android development, Natural Language Processing, and cloud technologies. Experienced in blending technical precision with creative problem-solving, UI/UX design, and team leadership to deliver impactful digital solutions.
+WORK EXPERIENCE
+Backend Development Lecturer • Big Brains — Remote	Dec 2025 – Present
+Delivering structured and industry-aligned training in backend development with a strong emphasis on scalable API architecture and best practices.
+Instruction covers RESTful API design, Pydantic-based data validation, SQLAlchemy ORM integration, JWT authentication, middleware implementation, dependency injection, and modular project structuring.
+Hands-on, project-driven learning equips learners with the practical skills required to design, develop, and deploy production-ready backend systems aligned with modern industry standards.
+Computer Science Lecturer • KIPS Virtual — Johar Town, Lahore	Jun 2024 – Feb 2025
+Taught in C++, Networking, and Programming Fundamentals.
+Mentored students through regular feedback sessions, improving engagement and academic outcomes.
+EDUCATION
+Bachelor of Software Engineering (Final Year)	Nov 2022 – Sept 2026
+University of Management and Technology, Lahore | CGPA: 3.93 / 4.00
+Intermediate of Computer Sciences	Dec 2020 – Jun 2022
+Govt. MAO College, Lahore | Grade: A+
+Matriculation (Computer Sciences)	Apr 2018 – Mar 2020
+F.G. School No. 5, Lahore | Grade: A+
+TECHNICAL PROJECTS
+Parhai Hub — Web & Mobile App (FYP & Startup)
+A Virtual University-focused e-learning platform designed to support online students with courses, notes, workshops, and live classes.
+Separate student and teacher dashboards for managing learning content, enrollments, progress, and educational resources.
+Integrated AI-based learning support, secure payments, and real-time video classes to improve the online learning experience.
+Implemented privacy-focused student attention tracking to help instructors monitor engagement during virtual sessions.
+Scholar AI — Research Assistant — Mobile App
+Engineered a full-stack mobile application that automates research workflows, built with an Android frontend, a FastAPI backend deployed on Vercel, and a custom document processing pipeline.
+Real-Time AI Attention Tracking System for Online Classrooms — Web
+A privacy-first real-time classroom engagement system using MediaPipe Face Mesh, FastAPI, WebSockets, and WebAssembly.
+Multimodal Vectorless Video Retrieval Augmented System (PageIndex Hierarchical Tree) — VLVRAG
+Pioneer developer of a novel RAG solution eliminating hallucinations in video content retrieval.
+AI-Powered Android Plant Care App — Hariyali App
+Developed an AI-powered Android application inspiring urban users to learn, grow, and care for plants.
+NLP Pipeline Built with LangChain — RAG System
+Android Ride-Management Application built using MVC architecture — RiderFlow App
+NLP Project for Multi-Class Sentiment Classification — Sentiment Analysis
+RESEARCH PUBLICATIONS
+Multimodal Vectorless Video Retrieval Augmented System for Educational Field(Continue)
+LANGUAGES & FRAMEWORKS
+Python (Scikit-learn, NumPy, Pandas, Matplotlib, Seaborn, TensorFlow, LangChain, CrewAI, Async Programming)
+Django
+FastAPI
+Java
+Kotlin
+Spring Boot (Basic Level)
+C++/C
+TECHNICAL SKILLS
+Mobile Development: Android (Java/Kotlin), Firebase
+AI / ML: Natural Language Processing, Machine Learning, Deep Learning, LangChain, RAG Systems
+Research & Development: Generative AI, Agentic AI, LLMs
+Web Development: HTML, CSS, Django, FastAPI, JavaScript
+Databases: MySQL, Firebase, MongoDB
+Cloud & DevOps: AWS, Scrum / Agile
+Software Testing: Selenium
+Project Management: Azure DevOps, Slack, Jira
+Tools & Design: Figma, Stitch
+Version Control System: Git, GitHub
+Deployment: Vercel, Railway
+CERTIFICATIONS
+Business Communication and AI for Professionals — LUMS (Credential ID: 6cc9d9f8b9af4853baba87d66b7d8284)
+Software Engineering Job Simulation — JP Morgan & Co (Credential ID: psLva7CFDxghMs4oS)
+HONORS & AWARDS
+Dean Merit Award — 2023
+Rector Merit Award — 2024
+Rector Merit Award — 2025
+Rector Merit Award — 2026

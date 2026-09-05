@@ -12,10 +12,15 @@
  * the path is resolved from this file rather than the working directory so it
  * works whether the process was started from backend/ or the project root.
  */
-import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-dotenv.config({
-  path: path.join(path.dirname(fileURLToPath(import.meta.url)), ".env"),
-});
+try {
+  const dotenv = await import("dotenv");
+  dotenv.default.config({
+    path: path.join(path.dirname(fileURLToPath(import.meta.url)), ".env"),
+  });
+} catch {
+  // On Vercel or CI, environment variables are injected directly into process.env
+}
+

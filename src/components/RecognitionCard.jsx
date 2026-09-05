@@ -34,9 +34,15 @@ export default function RecognitionCard({ item }) {
 }
 
 function StatCard({ item }) {
+  // This card rides the recognition marquee, so it can be carried horizontally
+  // past the viewport without ever satisfying a vertical-intersection gate —
+  // and the duplicated aria-hidden half of the track never satisfies one at
+  // all. Gated, these rendered as "0.00" and "0/16" permanently, directly
+  // under a heading about numbers that survived an audit.
   const [ref, text] = useCounter(item.value, {
     suffix: item.suffix ?? "",
     decimals: item.decimals ?? 0,
+    startImmediately: true,
   });
 
   return (

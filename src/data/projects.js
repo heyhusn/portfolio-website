@@ -9,6 +9,11 @@
  * Images point at the generated SVG artwork in /public/assets/img. Swap any
  * `image` for a real screenshot when you have one; the aspect ratios are fixed
  * in CSS so nothing shifts.
+ *
+ * OPEN ITEM — real screenshots. Two independent content audits flagged the
+ * placeholder artwork as the single biggest visual credibility gap against
+ * peer portfolios, which ship real product screens. Live surfaces exist for
+ * big-brains, solar-pv-digital-twin and scholarmind; capture those first.
  */
 
 export const projects = [
@@ -31,7 +36,7 @@ export const projects = [
     ],
     stack: ["Python", "OCR / ASR fusion", "BM25", "LLM judges", "Evaluation harness"],
     links: [],
-    note: "Abstract accepted at ICASF 2027 (Abu Dhabi University); full paper in writing.",
+    note: "Abstract accepted July 2026 for ICASF 2027 (Abu Dhabi University) — full paper in writing. Source and evaluation harness are held back while the paper is under review; the preprint and the segmentation benchmark are available on request.",
   },
   {
     slug: "big-brains",
@@ -104,7 +109,7 @@ export const projects = [
     stack: ["Android", "FastAPI", "pdfplumber", "DeepSeek", "OpenAlex", "Firestore"],
     links: [
       {
-        label: "scholar-ai-backend.vercel.app",
+        label: "API service (backend, not the app UI)",
         href: "https://scholar-ai-backend.vercel.app",
       },
     ],

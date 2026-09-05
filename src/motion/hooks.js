@@ -154,15 +154,26 @@ export function useReveal(delay = 0) {
 /**
  * Counting statistic. Same cubic ease-out and 1.5s duration as the original,
  * but stepped by the shared ticker instead of its own rAF loop.
+ *
+ * `startImmediately` exists for counters that live inside a transported
+ * marquee. Those cards move horizontally through a track that is wider than
+ * the viewport, and the duplicated half of the track is aria-hidden but still
+ * mounts this hook — so a vertical-intersection gate never reliably fires for
+ * them and the number sits at its initial 0 forever. A stat rendered as
+ * "0.00 CGPA" is not a cosmetic bug: it inverts the fact it is reporting.
+ * Callers in a marquee pass true and give up only the count-up flourish.
  */
-export function useCounter(target, { suffix = "", duration = 1.5, decimals = 0 } = {}) {
+export function useCounter(
+  target,
+  { suffix = "", duration = 1.5, decimals = 0, startImmediately = false } = {}
+) {
   const { animate } = useMotion();
   const [ref, inView] = useInViewOnce({ threshold: 0.4 });
   const [value, setValue] = useState(() => (animate ? 0 : target));
   const startedAt = useRef(0);
   const done = useRef(false);
 
-  const running = animate && inView && !done.current;
+  const running = animate && (inView || startImmediately) && !done.current;
 
   useTicker(
     (frame) => {

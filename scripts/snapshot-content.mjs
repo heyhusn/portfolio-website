@@ -34,6 +34,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import "../backend/env.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const target = path.resolve(__dirname, "../src/data/snapshot.generated.js");
@@ -76,13 +77,11 @@ try {
   const { repo } = await import("../backend/data/index.mjs");
   const db = await repo();
 
-  const [profile, projects, posts, siteContent, sections] = await Promise.all([
-    db.getProfile(),
-    db.listProjects(),
-    db.listPosts(),
-    db.getSiteContent(),
-    db.listSections(),
-  ]);
+  const profile = await db.getProfile();
+  const projects = await db.listProjects();
+  const posts = await db.listPosts();
+  const siteContent = await db.getSiteContent();
+  const sections = await db.listSections();
 
   // A database that exists but has never been seeded returns empty shapes.
   // Snapshotting that would blank the site on first paint and then fill it in

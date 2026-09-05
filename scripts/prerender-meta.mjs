@@ -25,6 +25,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import "../backend/env.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -66,9 +67,10 @@ async function loadContent() {
     try {
       const { repo } = await import("../backend/data/index.mjs");
       const db = await repo();
-      const [profile, projects, posts, site] = await Promise.all([
-        db.getProfile(), db.listProjects(), db.listPosts(), db.getSiteContent(),
-      ]);
+      const profile = await db.getProfile();
+      const projects = await db.listProjects();
+      const posts = await db.listPosts();
+      const site = await db.getSiteContent();
       if (profile) {
         console.log("[meta] content source: database");
         return { profile, projects, posts: posts.filter((p) => !p.isDraft), site };
@@ -252,3 +254,5 @@ fs.writeFileSync(
 
 console.log(`[meta] prerendered ${written} routes at ${SITE_URL}`);
 console.log(`[meta] + sitemap.xml, robots.txt`);
+process.exit(0);
+

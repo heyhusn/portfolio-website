@@ -1,11 +1,12 @@
 /**
  * Writing.
  *
- * ⚠ These six entries are scaffolding, not published work. The titles and
- * outlines are drawn from things you have actually built, so they are yours to
- * finish — but the body text is a starting draft written by tooling, and it
- * should be rewritten in your own words before this goes live. Delete any entry
- * you do not intend to write.
+ * ⚠ Only entries carrying `published: true` are finished work and reach the
+ * site; fallbackPosts() in fallback.js marks everything else draft. The rest
+ * are scaffolding — titles and outlines drawn from things you have actually
+ * built, with body text started by tooling that should be rewritten in your
+ * own words before it is published. Delete any entry you do not intend to
+ * write, and set the flag only once a post no longer ends in a "Draft —" note.
  *
  * `body` is an array of blocks: { type: "p" | "h" | "list" | "quote", ... }
  */
@@ -13,6 +14,9 @@
 export const posts = [
   {
     slug: "baseline-before-model",
+    // The only entry below that is finished prose rather than scaffolding.
+    // fallbackPosts() publishes exactly the posts that set this.
+    published: true,
     title: "Build The Baseline Before You Build The Model",
     category: "Practice",
     date: "2026-07-18",
@@ -38,9 +42,28 @@ export const posts = [
           "It tells you whether the problem is worth the model you were about to build.",
         ],
       },
+      { type: "h", text: "What the baseline actually scored" },
       {
         type: "p",
-        text: "Draft — finish this with the actual Pk and WindowDiff numbers and the moment you realised the earlier figures had to be dropped.",
+        text: "The baseline is count-matched equal spacing: take the number of segments the system proposes, then cut the lecture into that many equal pieces. It knows nothing about the content. On Pk it scored 0.512, and on WindowDiff 0.513 — both error metrics, so lower is better, and both sitting near the 0.5 you would expect from a boundary set that carries no information about where the topic actually changes.",
+      },
+      {
+        type: "p",
+        text: "The finished system reaches Pk 0.344 and WindowDiff 0.391 on the same held-out lectures, improving on 16 of 16 of them, Wilcoxon p < 0.001. That is a real gain and I am glad to have it. But the number I care about is the first pair, because without them the second pair means nothing at all — 0.344 is only good in relation to something, and for two weeks I had no idea what that something was.",
+      },
+      { type: "h", text: "The part that cost me" },
+      {
+        type: "p",
+        text: "Writing the baseline late did not just delay the comparison. It hid an evaluation bug for a fortnight, and when the bug surfaced several figures I had already written down stopped being defensible. They were not wrong by a rounding error; they were measuring something adjacent to what I claimed they measured.",
+      },
+      {
+        type: "p",
+        text: "So they came out. Not softened, not re-framed with a caveat — removed, and replaced with numbers produced by a pipeline I had read end to end. That audit is the part of the project I would most want to be judged on, and it only happened because a trivially simple baseline eventually disagreed with a complicated model.",
+      },
+      { type: "h", text: "What I do now" },
+      {
+        type: "p",
+        text: "The dumbest thing that could work gets built and measured first, before any model. It takes an afternoon, it is almost always embarrassing to look at, and it is the only reason any later number on the project means anything. If the clever approach cannot beat equal spacing, the problem is not the model — it is that nobody had yet defined what winning looked like.",
       },
     ],
   },

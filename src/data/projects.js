@@ -112,6 +112,7 @@ export const projects = [
         label: "API service (backend, not the app UI)",
         href: "https://scholar-ai-backend.vercel.app",
       },
+      { label: "ScholarMind (Android client)", href: "https://github.com/heyhusn/ScholarMind" },
     ],
   },
 
@@ -134,7 +135,9 @@ export const projects = [
       "FastAPI WebSockets carry the score only",
     ],
     stack: ["MediaPipe", "WebAssembly", "FastAPI", "WebSockets"],
-    links: [],
+    links: [
+      { label: "Real-Time-Student-Attention-Check", href: "https://github.com/heyhusn/Real-Time-Student-Attention-Check" },
+    ],
   },
   {
     slug: "rag-system",
@@ -152,7 +155,9 @@ export const projects = [
       "ChromaDB vector store with PyPDFLoader ingestion",
     ],
     stack: ["LangChain", "Ollama", "gemma3:1b", "ChromaDB"],
-    links: [],
+    links: [
+      { label: "RAG-System", href: "https://github.com/heyhusn/RAG-System" },
+    ],
   },
   {
     slug: "hariyali",
@@ -171,7 +176,9 @@ export const projects = [
       "Figma prototype ahead of the build",
     ],
     stack: ["Android", "Firebase", "Image classification", "Figma"],
-    links: [],
+    links: [
+      { label: "Hariyali-Mobile-App", href: "https://github.com/heyhusn/Hariyali-Mobile-App" },
+    ],
   },
   {
     slug: "resume-screening",
@@ -190,7 +197,9 @@ export const projects = [
       "Streamlit interface for non-technical use",
     ],
     stack: ["scikit-learn", "NLTK", "Streamlit"],
-    links: [],
+    links: [
+      { label: "Resume-Screen-App-NLP", href: "https://github.com/heyhusn/Resume-Screen-App-NLP" },
+    ],
   },
   {
     slug: "financial-sentiment",
@@ -205,7 +214,9 @@ export const projects = [
       "Sentence-BERT embeddings feed a deep feed-forward network for three-way classification, deployed as a Streamlit app so the model can be poked at directly rather than through a notebook.",
     highlights: ["SBERT sentence embeddings", "Deep ANN classifier", "Streamlit deployment"],
     stack: ["SBERT", "PyTorch", "Streamlit"],
-    links: [],
+    links: [
+      { label: "Financial-Sentimental-Analysis", href: "https://github.com/heyhusn/Financial-Sentimental-Analysis" },
+    ],
   },
   {
     slug: "birnn-sentiment-api",
@@ -219,7 +230,9 @@ export const projects = [
       "The interesting half of this one is the serving, not the model: a bidirectional RNN behind a FastAPI service with the shapes, batching and error paths a real caller needs.",
     highlights: ["Bidirectional RNN classifier", "FastAPI service"],
     stack: ["PyTorch", "FastAPI"],
-    links: [],
+    links: [
+      { label: "BiRNN-Sentiment-API", href: "https://github.com/heyhusn/BiRNN-Sentiment-API" },
+    ],
   },
   {
     slug: "smart-job-scraper",
@@ -238,7 +251,9 @@ export const projects = [
       "CSV export for downstream triage",
     ],
     stack: ["Python", "JobSpy", "pandas"],
-    links: [],
+    links: [
+      { label: "job-scraper", href: "https://github.com/heyhusn/job-scraper" },
+    ],
   },
   {
     slug: "engineering-fundamentals",
@@ -260,7 +275,12 @@ export const projects = [
       "Family Income & Expenditure predictor",
     ],
     stack: ["Java", "C++", "Django", "Selenium"],
-    links: [],
+    links: [
+      { label: "BookstoreManagementSys", href: "https://github.com/heyhusn/BookstoreManagementSys" },
+      { label: "EcommerceRecommendationSystemDSA", href: "https://github.com/heyhusn/EcommerceRecommendationSystemDSA" },
+      { label: "Code-Refactoring", href: "https://github.com/heyhusn/Code-Refactoring" },
+      { label: "Amazon-Website-Automation", href: "https://github.com/heyhusn/Amazon-Website-Automation" },
+    ],
   },
 ];
 

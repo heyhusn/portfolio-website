@@ -125,6 +125,11 @@ export const experience = [
     years: "Mar 2026 — Present",
   },
   {
+    role: "Backend Engineer",
+    org: "Big Brains — Lahore / remote",
+    years: "2025 — Present",
+  },
+  {
     role: "Backend Development Lecturer",
     org: "Big Brains — remote",
     years: "Dec 2025 — Present",

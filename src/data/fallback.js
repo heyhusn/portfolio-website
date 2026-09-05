@@ -82,10 +82,12 @@ export function fallbackProjects() {
 
 export function fallbackPosts() {
   if (live.posts?.length) return live.posts;
-  // These six are explicitly scaffolding (see the note at the top of
-  // posts.js) — mark them draft so they never show to a real visitor if
-  // the site ever falls back to this bundled copy in production.
-  return staticPosts.map((p) => ({ ...p, isDraft: true }));
+  // Most of these are still scaffolding (see the note at the top of
+  // posts.js), so the default is draft: an unfinished post must never reach
+  // a visitor just because the admin API was unreachable. A post that has
+  // actually been written sets `published: true` on itself and is the one
+  // exception — the flag is opt-in per post, not a blanket switch.
+  return staticPosts.map((p) => ({ ...p, isDraft: p.published !== true }));
 }
 
 export function fallbackSiteContent() {

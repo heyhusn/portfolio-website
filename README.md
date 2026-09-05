@@ -15,7 +15,7 @@
 ![Grounding](https://img.shields.io/badge/ANSWERS-CITED_OR_REFUSED-d0ff71?style=flat-square&labelColor=1a1a1b)
 ![Motion](https://img.shields.io/badge/MOTION-ONE_KERNEL_TICKER-d0ff71?style=flat-square&labelColor=1a1a1b)
 ![3D](https://img.shields.io/badge/WEBGL-FULL_TIER_ONLY-8A6DF1?style=flat-square&labelColor=1a1a1b)
-![Tests](https://img.shields.io/badge/TESTS-51_ON_EVERY_PUSH-d0ff71?style=flat-square&labelColor=1a1a1b)
+![Tests](https://img.shields.io/badge/TESTS-60_ON_EVERY_PUSH-d0ff71?style=flat-square&labelColor=1a1a1b)
 
 [Overview](#overview) · [The assistant](#the-assistant) · [Architecture](#architecture) · [Quick start](#quick-start) · [Deploying](#deploying-to-vercel) · [Structure](#project-structure) · [Notes](docs/ENGINEERING-NOTES.md)
 
@@ -223,7 +223,7 @@ web │   ➜  Local:   http://localhost:5173/
 | `npm run dev:web` / `dev:api` | Either one alone |
 | `npm run build` | Production build: model-budget check → content snapshot → Vite → per-route metadata |
 | `npm run snapshot` | Just the content snapshot (needs `DATABASE_URL`; see [First paint is the final paint](#first-paint-is-the-final-paint)) |
-| `npm test` | The suite — 51 tests across the motion kernel, capability tiers, avatar gates, model budget, retrieval and accessibility |
+| `npm test` | The suite — 60 tests across the motion kernel, capability tiers, avatar gates, marquee transport, model budget, retrieval and accessibility |
 | `npm run test:watch` | Same, in watch mode |
 | `npm run verify` | `test` then `build` — what CI runs |
 | `cd backend && npm run setup` | Migrate, index, and export the production knowledge base |

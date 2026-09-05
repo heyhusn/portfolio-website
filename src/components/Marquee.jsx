@@ -15,10 +15,25 @@ import { PRIORITY } from "../motion/kernel.js";
  *          hard-pausing. This is the one upgrade over the static build.
  *   MID    the original CSS `slide` keyframe animation, paused on hover.
  *   LITE / motion off
- *          no transport at all — a static, readable strip.
+ *          no transport — the strip becomes a horizontal scroller the visitor
+ *          swipes or arrows through.
  *
- * The content is rendered twice and the transport wraps at half the track
- * width, so the seam is never visible. The duplicate is aria-hidden.
+ * That last mode used to mean "frozen". It was wrong, and on a phone it was
+ * badly wrong: every phone resolves to LITE, `.marquee` is `overflow: hidden`,
+ * and the tracks are 1,900–3,500 px wide inside a 393 px viewport. So the
+ * recognition cards, the recommendations and the word ticker all sat at offset
+ * zero with 1,500–3,100 px of content walled off and no way to reach it. The
+ * same trap caught anyone on desktop with reduced motion turned on.
+ *
+ * Auto-play is deliberately NOT the fix for touch. Content that moves on its
+ * own for more than five seconds needs a pause mechanism (WCAG 2.2.2), and the
+ * CSS marquee's only one is `:hover` — which does not exist on a touchscreen.
+ * A scroller is both the accessible answer and the one a thumb expects.
+ *
+ * In the two transported modes the content is rendered twice and the transport
+ * wraps at half the track width, so the seam is never visible; the duplicate is
+ * aria-hidden. A scroller renders it once — a second identical copy would just
+ * double the swipe distance.
  */
 export default function Marquee({
   children,
@@ -31,10 +46,14 @@ export default function Marquee({
   // expanded to be read, say. Hover already eases to a halt; this is the
   // same halt, held open until the consumer releases it.
   paused = false,
+  /** Announced when the strip is a scroller and takes focus. */
+  scrollLabel = "Scrollable list — use the arrow keys or swipe",
 }) {
   const { tier, motion } = useMotion();
   const kernelDriven = tier === TIER.FULL && motion !== MOTION.OFF;
   const cssDriven = tier === TIER.MID && motion !== MOTION.OFF;
+  /** Nothing transports it, so the visitor does. */
+  const scrollable = !kernelDriven && !cssDriven;
 
   const [trackRef, trackRect] = useMeasure();
   // Off-screen strips are frozen rather than stepped: there are several of
@@ -95,7 +114,13 @@ export default function Marquee({
       style={style}
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
-      data-transport={kernelDriven ? "kernel" : cssDriven ? "css" : "static"}
+      data-transport={kernelDriven ? "kernel" : cssDriven ? "css" : "scroll"}
+      /* A scrollable region has to be reachable without a pointer, and an
+         element only takes keyboard scrolling if it can hold focus. role and
+         label give screen readers something to announce when it does. */
+      {...(scrollable
+        ? { tabIndex: 0, role: "group", "aria-label": scrollLabel }
+        : null)}
     >
       <div
         className="marquee__track"
@@ -106,11 +131,13 @@ export default function Marquee({
         style={gap !== undefined ? { gap } : undefined}
       >
         {kids}
-        {kids.map((child, i) => (
-          <div key={`clone-${i}`} aria-hidden="true" style={{ display: "contents" }}>
-            {child}
-          </div>
-        ))}
+        {scrollable
+          ? null
+          : kids.map((child, i) => (
+              <div key={`clone-${i}`} aria-hidden="true" style={{ display: "contents" }}>
+                {child}
+              </div>
+            ))}
       </div>
     </div>
   );

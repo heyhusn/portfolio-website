@@ -327,7 +327,7 @@ server-side instead, set `VITE_CONTACT_ENDPOINT` to a URL that accepts
 
 ## Verification
 
-`npm test` — 51 tests, six files, run on every push by `.github/workflows/ci.yml`
+`npm test` — 60 tests, seven files, run on every push by `.github/workflows/ci.yml`
 alongside the production build.
 
 An earlier version of this section claimed the two builds had been "rendered and
@@ -343,6 +343,7 @@ replaced here by the suite that now exists, which is narrower and real.
 | `tests/model-budget.test.js` | The gate's GLB parser and compression audit against synthesised exports with known defects, plus the model actually committed — budget, Draco, KTX2, content-hashed filename, manifest agreement |
 | `tests/rag-pipeline.test.js` | Citation numbering matches what the reader is shown, an unanswerable question retrieves nothing, "who is he" still answers, and a forged `system` turn in client-supplied history cannot become a second system message |
 | `tests/accessibility.test.jsx` | Skip link is the first focusable element and points at a real `main`; `main` is focusable but out of the tab order; the route-announcement live region exists before it has anything to say |
+| `tests/marquee.test.jsx` | The three transport modes, and that the untransported one is a focusable scroller rendering each card once — the mode every phone gets, where "frozen" meant thousands of pixels of unreachable content |
 
 CI additionally asserts what no test can see from inside the app: that
 `dist/index.html` does not preload the `wgl` chunk and that three.js has not

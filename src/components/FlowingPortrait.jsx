@@ -65,13 +65,13 @@ export default function FlowingPortrait({ profile, heroSlotRef, servicesSlotRef 
   const measure = useCallback(() => {
     const heroSlot = heroSlotRef.current;
     const servicesSlot = servicesSlotRef.current;
-    if (!heroSlot) {
+    if (!heroSlot || !servicesSlot) {
       geom.current = null;
       return;
     }
 
     const hero = heroSlot.getBoundingClientRect();
-    const services = servicesSlot ? servicesSlot.getBoundingClientRect() : null;
+    const services = servicesSlot.getBoundingClientRect();
     // Page space, not viewport space. `left` needs scrollX for the same reason
     // `top` needs scrollY — the portrait is positioned absolutely against the
     // document, so mixing the two coordinate systems only happened to work
@@ -84,11 +84,10 @@ export default function FlowingPortrait({ profile, heroSlotRef, servicesSlotRef 
       heroLeft: hero.left + sx,
       heroW: hero.width || 325,
       heroH: hero.height || 440,
-      servicesTop: services ? services.top + sy : hero.top + sy,
-      servicesLeft: services ? services.left + sx : hero.left + sx,
-      servicesW: services ? (services.width || 380) : (hero.width || 325),
-      servicesH: services ? (services.height || 475) : (hero.height || 440),
-      hasServices: Boolean(servicesSlot),
+      servicesTop: services.top + sy,
+      servicesLeft: services.left + sx,
+      servicesW: services.width || 380,
+      servicesH: services.height || 475,
     };
   }, [heroSlotRef, servicesSlotRef]);
 
@@ -125,23 +124,6 @@ export default function FlowingPortrait({ profile, heroSlotRef, servicesSlotRef 
       return;
     }
     parked.current = false;
-
-    if (!g.hasServices) {
-      // Anchored cleanly to hero slot with subtle counter-parallax if services section is absent
-      portrait.style.position = "absolute";
-      portrait.style.top = `${g.heroTop}px`;
-      portrait.style.left = `${g.heroLeft}px`;
-      portrait.style.width = `${g.heroW}px`;
-      portrait.style.height = `${g.heroH}px`;
-      portrait.style.borderRadius = "var(--r-xl)";
-      portrait.style.zIndex = "4";
-      portrait.style.transform = `translate3d(0, ${(scrollY * -0.05).toFixed(2)}px, 0)`;
-      if (badge) {
-        badge.style.opacity = "1";
-        badge.style.transform = "scale(1)";
-      }
-      return;
-    }
 
     const startScroll = Math.max(0, g.heroTop - 120);
     const endScroll = g.servicesTop - 120;
@@ -205,6 +187,12 @@ export default function FlowingPortrait({ profile, heroSlotRef, servicesSlotRef 
       park();
     }
   }, [animate, isMobile, park]);
+
+  /* Below 820px the wrapper is `display: none` and the hero renders its own
+     portrait, so this mounted a second SignatureScene — a duplicate image
+     element, a duplicate poster in the DOM, and a WebGL gate evaluated for a
+     box with no size. CSS was hiding it; nothing was stopping it existing. */
+  if (isMobile) return null;
 
   return (
     <div

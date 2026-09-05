@@ -6,6 +6,9 @@ const CONTACT_ENDPOINT = import.meta.env.VITE_CONTACT_ENDPOINT || "";
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const EMPTY = { name: "", email: "", service: "", message: "" };
 
+/** The plain-text body used by both the mailto handoff and the copy button. */
+const composeBody = (v) => `${v.message}\n\n— ${v.name}\n${v.email}`;
+
 const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref) {
   const { siteContent, profile } = useStore();
   const serviceOptions = siteContent?.serviceOptions || [];
@@ -13,11 +16,24 @@ const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref)
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState("idle");
+  const [copied, setCopied] = useState(false);
   const liveRef = useRef(null);
 
   const update = (field) => (e) => {
     setValues((v) => ({ ...v, [field]: e.target.value }));
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
+
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(composeBody(values));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Clipboard blocked (insecure context, or the visitor declined). The
+      // message is still on screen to select by hand, so there is nothing
+      // useful to say here.
+    }
   };
 
   const validate = () => {
@@ -32,6 +48,11 @@ const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref)
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    // The submit button is already disabled while a request is in flight, but
+    // a form can be submitted without pressing it — Enter in any text field
+    // does it, and a disabled button does not stop that. This is the guard
+    // that actually prevents a double send.
+    if (status === "sending") return;
     if (!validate()) {
       const first = e.currentTarget.querySelector("[aria-invalid='true']");
       first?.focus();
@@ -39,15 +60,19 @@ const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref)
     }
 
     if (!CONTACT_ENDPOINT) {
-      const subject = encodeURIComponent(
+      /* No endpoint configured, so this hands off to the visitor's mail
+         client. Nothing here can find out whether that worked: a machine with
+         no mail client registered — which describes most people on webmail —
+         simply does nothing, and the page gets no event either way.
+
+         So this deliberately does NOT claim the message was sent, and does NOT
+         clear the form. What the visitor typed stays on screen, and the panel
+         below gives them the address and a copy button, so a failed handoff
+         costs them a click rather than their whole message. */
+      window.location.href = `mailto:${profile?.email}?subject=${encodeURIComponent(
         `Portfolio enquiry — ${values.service || "General"}`
-      );
-      const body = encodeURIComponent(
-        `${values.message}\n\n— ${values.name}\n${values.email}`
-      );
-      window.location.href = `mailto:${profile?.email}?subject=${subject}&body=${body}`;
-      setStatus("sent");
-      setValues(EMPTY);
+      )}&body=${encodeURIComponent(composeBody(values))}`;
+      setStatus("handoff");
       return;
     }
 
@@ -82,6 +107,9 @@ const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref)
       id="contactForm"
       noValidate
       onSubmit={onSubmit}
+      // Screen readers get the same "something is happening" signal the
+      // button's label gives everyone else.
+      aria-busy={status === "sending" ? "true" : undefined}
       ref={ref}
       {...rest}
     >
@@ -122,11 +150,10 @@ const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref)
       </div>
 
       <div className="field">
-        <label htmlFor="f-msg">Tell me about it</label>
+        <label htmlFor="f-message">Tell me about it</label>
         <textarea
           placeholder="A sentence or two about the problem…"
           {...fieldProps("message", "Message")}
-          id="f-msg"
         />
         {errors.message && (
           <p className="field__err" id="f-message-err">
@@ -141,10 +168,23 @@ const ContactForm = forwardRef(function ContactForm({ className, ...rest }, ref)
         aria-live="polite"
         ref={liveRef}
       >
-        {CONTACT_ENDPOINT
-          ? "Thanks — your message is on its way. Expect a reply within two working days."
-          : "Thanks — your mail client should be opening with the message ready to send."}
+        Thanks — your message is on its way. Expect a reply within two working
+        days.
       </div>
+
+      {status === "handoff" && (
+        <div className="form__ok is-on" role="status" aria-live="polite">
+          <p style={{ margin: "0 0 10px" }}>
+            Your mail client should be opening with this message ready to send.
+            Nothing happened? Then it isn&rsquo;t set up on this machine — copy
+            the message and send it to{" "}
+            <a href={`mailto:${profile?.email}`}>{profile?.email}</a>.
+          </p>
+          <button type="button" className="btn btn--sm" onClick={copyMessage}>
+            {copied ? "Copied" : "Copy the message"}
+          </button>
+        </div>
+      )}
 
       {status === "error" && (
         <div className="form__err" role="alert">

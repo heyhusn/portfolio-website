@@ -1,0 +1,68 @@
+name: CI
+
+# Everything the docs claim is verified, verified on every push. Before this
+# existed the model budget gate, the same-origin decoder check and the
+# entry-graph split were all enforced only by whoever remembered to run a
+# build locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      # This also runs check-model-budget.mjs (FR-AVT-03/05/06/10) and the
+      # per-route metadata prerender, so a model over budget, an uncompressed
+      # re-export, or a third-party decoder origin fails the build here rather
+      # than reaching a deploy.
+      - name: Build
+        run: npm run build
+
+      - name: The WebGL chunk must stay out of the entry graph
+        # ADR-20 / NFR-PERF-05. If three.js ever becomes statically reachable
+        # from the entry, Vite emits a <link rel="modulepreload"> for it and
+        # every visitor downloads ~950 KB of renderer regardless of their
+        # capability tier. That regression is invisible in the browser — the
+        # site just gets slower — so it is asserted here.
+        run: |
+          if grep -o 'modulepreload[^>]*' dist/index.html | grep -q 'wgl-'; then
+            echo "::error::dist/index.html preloads the wgl chunk — three.js is statically reachable from the entry."
+            grep -o 'modulepreload[^>]*' dist/index.html
+            exit 1
+          fi
+          if grep -q 'new WebGLRenderer\|THREE\.WebGLRenderer =' dist/assets/index-*.js; then
+            echo "::error::three.js appears to be bundled into the entry chunk."
+            exit 1
+          fi
+          echo "entry graph clean — wgl is dynamic only"
+
+      - name: Report bundle sizes
+        run: |
+          echo "### Bundle sizes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          for f in dist/assets/*.js dist/assets/*.css; do
+            printf '%-40s %8s raw  %8s gz\n' \
+              "$(basename "$f")" \
+              "$(stat -c%s "$f")" \
+              "$(gzip -c "$f" | wc -c)" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

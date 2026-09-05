@@ -1,5 +1,5 @@
 import "./env.mjs";
-import db from "./db.mjs";
+import { repo, usingPostgres } from "./data/index.mjs";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
@@ -50,111 +50,41 @@ async function seed() {
     const github = skillsModule.github;
     const recommendations = skillsModule.recommendations;
 
+    // Postgres starts empty — there is no file with a schema baked in, the
+    // way the SQLite driver gets one from db.mjs on import.
+    if (usingPostgres()) {
+      const { applySchema } = await import("./data/postgres.mjs");
+      await applySchema();
+      console.log("Schema applied to Postgres.");
+    }
+
+    const db = await repo();
+
     // Seed Profile
-    const stmtProfile = db.prepare(`
-      INSERT OR REPLACE INTO profile (
-        id, name, heroWords, kicker, availability, role, location, tagline, intro,
-        aboutEyebrow, aboutTitle, aboutLead, email, phone, phoneHref, socials, stats, education
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    stmtProfile.run(
-      1,
-      profile.name,
-      JSON.stringify(profile.heroWords),
-      profile.kicker,
-      profile.availability,
-      profile.role,
-      profile.location,
-      profile.tagline,
-      profile.intro,
-      profile.about.eyebrow,
-      profile.about.title,
-      profile.about.lead,
-      profile.email,
-      profile.phone,
-      profile.phoneHref,
-      JSON.stringify(profile.socials),
-      JSON.stringify(profile.stats),
-      JSON.stringify(profile.education)
-    );
+    await db.saveProfile({
+      ...profile,
+      aboutEyebrow: profile.about?.eyebrow || "",
+      aboutTitle: profile.about?.title || "",
+      aboutLead: profile.about?.lead || "",
+    });
     console.log("Profile seeded.");
 
     // Seed Projects
-    const stmtProject = db.prepare(`
-      INSERT OR IGNORE INTO projects (
-        slug, title, tag, year, image, featured, summary, description, highlights, stack, links, note, ordering
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    projects.forEach((p, idx) => {
-      stmtProject.run(
-        p.slug,
-        p.title,
-        p.tag,
-        p.year,
-        p.image,
-        p.featured ? 1 : 0,
-        p.summary,
-        p.description,
-        JSON.stringify(p.highlights || []),
-        JSON.stringify(p.stack || []),
-        JSON.stringify(p.links || []),
-        p.note || null,
-        idx
-      );
-    });
+    await db.replaceProjects(projects);
     console.log("Projects seeded.");
 
-    // Seed Posts
-    // Field names mirror what PostCard/BlogPost actually read (date +
-    // dateLabel, excerpt, body[] blocks) — the previous version of this
-    // script bound p.date/p.summary/p.content, none of which exist on the
-    // real post objects (they're dateLabel/excerpt/body), so every seeded
-    // post ended up with a missing date, blank excerpt, and no body at all
-    // (BlogPost.jsx crashes on post.body.map when body is undefined).
-    // The six scaffold posts are explicitly marked draft here, matching the
-    // "these are drafts, not published work" note at the top of posts.js —
-    // flip isDraft off for a post once you've rewritten it, from the admin
-    // dashboard's Posts tab.
-    const stmtPost = db.prepare(`
-      INSERT OR IGNORE INTO posts (
-        slug, title, date, dateLabel, category, excerpt, body, image, isDraft
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    posts.forEach((p) => {
-      stmtPost.run(
-        p.slug,
-        p.title,
-        p.date,
-        p.dateLabel,
-        p.category,
-        p.excerpt,
-        JSON.stringify(p.body || []),
-        p.image,
-        1
-      );
-    });
+    // Seed Posts — marked draft, matching the note at the top of posts.js.
+    await db.replacePosts(posts.map((p) => ({ ...p, isDraft: true })));
     console.log("Posts seeded (as drafts — publish each from the admin dashboard once rewritten).");
 
     // Seed Site Content
-    const stmtSite = db.prepare("INSERT OR REPLACE INTO site_content (key, value) VALUES (?, ?)");
-    stmtSite.run("services", JSON.stringify(services));
-    stmtSite.run("tickerWords", JSON.stringify(tickerWords));
-    stmtSite.run("recognition", JSON.stringify(recognition));
-    stmtSite.run("faqs", JSON.stringify(faqs));
-    stmtSite.run("experience", JSON.stringify(experience));
-    stmtSite.run("process", JSON.stringify(processSteps));
-    stmtSite.run("serviceOptions", JSON.stringify(serviceOptions));
-    stmtSite.run("skillGroups", JSON.stringify(skillGroups));
-    stmtSite.run("certifications", JSON.stringify(certifications));
-    stmtSite.run("volunteering", JSON.stringify(volunteering));
-    stmtSite.run("github", JSON.stringify(github));
-    stmtSite.run("recommendations", JSON.stringify(recommendations));
-    // The old key is dead now that SkillsSection reads skillGroups; drop it
-    // so the admin panel's Site Text tab stops offering a field nothing renders.
-    db.prepare("DELETE FROM site_content WHERE key = 'stack'").run();
+    await db.saveSiteContent({
+      services, tickerWords, recognition, faqs, experience,
+      process: processSteps, serviceOptions,
+      skillGroups, certifications, volunteering, github, recommendations,
+    });
+    // The old key is dead now that SkillsSection reads skillGroups.
+    await db.deleteSiteContent("stack");
     console.log("Site content seeded.");
 
     // Seed Sections
@@ -181,10 +111,9 @@ async function seed() {
       { id: "contact", title: "Contact", is_visible: 1, ordering: 14 }
     ];
 
-    const stmtSection = db.prepare("INSERT OR IGNORE INTO sections (id, title, is_visible, ordering, animation_type, font_family, type, content) VALUES (?, ?, ?, ?, 'default', 'default', 'predefined', NULL)");
-    defaultSections.forEach(s => {
-      stmtSection.run(s.id, s.title, s.is_visible, s.ordering);
-    });
+    for (const [i, section] of defaultSections.entries()) {
+      await db.insertSectionIfMissing({ ...section, is_visible: !!section.is_visible }, section.ordering ?? i);
+    }
     console.log("Sections seeded.");
 
     // Create a default admin user. The password is hashed with bcrypt before
@@ -192,14 +121,16 @@ async function seed() {
     // bcrypt.compareSync, so a plaintext password here would never match.
     const defaultPassword = process.env.SEED_ADMIN_PASSWORD || "admin123";
     const passwordHash = bcrypt.hashSync(defaultPassword, 10);
-    const stmtUser = db.prepare("INSERT OR REPLACE INTO users (username, password) VALUES (?, ?)");
-    stmtUser.run("admin", passwordHash);
+    await db.upsertUser("admin", passwordHash);
     console.log(
       `Default admin created: admin / ${defaultPassword}` +
         (process.env.SEED_ADMIN_PASSWORD ? "" : " — change this before deploying (set SEED_ADMIN_PASSWORD).")
     );
 
-    console.log("Seeding complete.");
+    console.log(
+      `Seeding complete — wrote to ${usingPostgres() ? "Postgres (DATABASE_URL)" : "SQLite (backend/portfolio.db)"}.`
+    );
+    await db.close();
   } catch (err) {
     console.error("Error seeding:", err);
   }

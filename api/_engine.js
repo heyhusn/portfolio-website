@@ -16,12 +16,44 @@ import { CHUNKS, BUILT_AT } from "./_rag-index.js";
 
 let cached = null;
 
-function getIndex() {
+/**
+ * Where the chunks come from, in order of preference:
+ *
+ *  1. Postgres, when DATABASE_URL is set. This is what makes an admin edit in
+ *     production actually reach the assistant — reindex from /admin and the
+ *     next cold instance picks it up. One query, cached for the life of the
+ *     instance.
+ *  2. api/_rag-index.js, the committed export. Works with no database at all,
+ *     which keeps the chatbot deployable on a static-only setup.
+ */
+async function getIndex() {
+  if (cached) return cached;
+
+  if (process.env.DATABASE_URL) {
+    try {
+      const { repo } = await import("../backend/data/index.mjs");
+      const rows = await (await repo()).listChunks();
+      if (rows.length) {
+        cached = { index: buildIndex(rows), size: rows.length, builtAt: new Date().toISOString(), source: "database" };
+        return cached;
+      }
+      // An empty table is not an error — fall through to the committed export
+      // rather than serving an assistant with nothing to retrieve.
+    } catch (err) {
+      console.error("[rag] could not read chunks from the database, using the bundled index:", err.message);
+    }
+  }
+
   if (!CHUNKS?.length) return null;
-  if (!cached) cached = { index: buildIndex(CHUNKS), size: CHUNKS.length, builtAt: BUILT_AT };
+  cached = { index: buildIndex(CHUNKS), size: CHUNKS.length, builtAt: BUILT_AT, source: "bundled" };
   return cached;
 }
 
+// Register the provider with the shared pipeline. Without this line the
+// pipeline keeps its default "no index" provider and every question comes
+// back as "the knowledge base is empty" — while /api/rag/meta still reports a
+// healthy index, because it calls getIndex() directly. Two code paths, one
+// source of truth for the index; only this line connects them.
 setIndexProvider(getIndex);
 
 export function indexStats() {
@@ -99,15 +131,38 @@ export function validateQuestion(body) {
 }
 
 export function applyCors(req, res) {
-  // The functions are same-origin with the site in production; the header is
-  // here so a local `npm run dev` on :5173 can talk to a `vercel dev` on
-  // :3000 without a proxy shim.
-  res.setHeader("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
+  // Same-origin is the normal case in production: the site and /api share an
+  // origin, so the browser sends no Origin header and CORS never applies. The
+  // header below exists for the cross-origin setups — a `vercel dev` on :3000
+  // serving a Vite dev server on :5173, or an API hosted separately.
+  //
+  // Not `*`: that hands every website on the internet the ability to call
+  // these routes from a visitor's browser. Unnecessary, since production does
+  // not need the header at all, and wrong for the admin routes.
+  const origin = req.headers.origin;
+  if (origin) {
+    const host = req.headers.host || "";
+    const sameOrigin = origin === `https://${host}` || origin === `http://${host}`;
+    const allowed = (process.env.CORS_ORIGIN || "")
+      .split(",").map((s) => s.trim()).filter(Boolean);
+
+    if (sameOrigin || allowed.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      // The response varies by Origin, so a cache must not serve one origin's
+      // response to another.
+      res.setHeader("Vary", "Origin");
+    } else {
+      // No header: the browser blocks it, which is the intent. Logged so a
+      // genuine misconfiguration is diagnosable from the function logs rather
+      // than only from a browser console on someone else's machine.
+      console.warn(
+        `[cors] refused origin ${origin} (host ${host}). ` +
+          `Add it to CORS_ORIGIN if this is expected.`
+      );
+    }
+  }
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return true;
-  }
+  if (req.method === "OPTIONS") { res.status(204).end(); return true; }
   return false;
 }

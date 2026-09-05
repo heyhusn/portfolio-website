@@ -32,14 +32,16 @@ const RERANK_KEEP = 5;
 const MAX_CONTEXT_CHARS = 7000;
 const MIN_RELEVANCE = 0.18;
 
-export const SUGGESTED_QUESTIONS = [
-  "Who is Husnain?",
-  "What is VLVRAG and what were the results?",
-  "What's his experience with FastAPI and backend work?",
-  "Has he built RAG systems before?",
-  "What did he do on the solar PV digital twin?",
-  "Is he available for work, and what kind of roles?",
-];
+/**
+ * Re-exported, not defined here.
+ *
+ * The panel renders these chips before /api/rag/meta answers, so the browser
+ * needs the same list — and it must be the SAME list, not a copy that drifts,
+ * or the response swaps six chips for six different ones and the section
+ * below jumps. src/data/suggested-questions.js is plain data with no imports,
+ * so reaching into src/ from here costs the serverless bundle nothing.
+ */
+export { SUGGESTED_QUESTIONS } from "../../src/data/suggested-questions.js";
 
 /* ------------------------------------------------------------------ */
 /* Retrieval                                                           */
@@ -104,8 +106,8 @@ function identityHits(loaded) {
   return picked;
 }
 
-export function retrieve(question) {
-  const loaded = indexProvider();
+export async function retrieve(question) {
+  const loaded = await indexProvider();
   if (!loaded) return { hits: [], indexed: 0 };
 
   const tokens = tokenize(question);
@@ -285,7 +287,7 @@ export function sourcesFor(hits) {
 /* ------------------------------------------------------------------ */
 export async function answer(question, history = []) {
   const started = Date.now();
-  const { hits: raw, indexed, identity } = retrieve(question);
+  const { hits: raw, indexed, identity } = await retrieve(question);
 
   if (!indexed) {
     throw new LlmError(
@@ -321,7 +323,7 @@ export async function answer(question, history = []) {
 /** Same pipeline, streamed. Retrieval finishes before the first token, so the
  *  client gets its sources up front and can render them while text arrives. */
 export async function* answerStream(question, history = []) {
-  const { hits: raw, indexed, identity } = retrieve(question);
+  const { hits: raw, indexed, identity } = await retrieve(question);
 
   if (!indexed) throw new LlmError("The knowledge base is empty. Run `npm run ingest` in backend/.", 503);
 

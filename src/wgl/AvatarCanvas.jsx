@@ -101,6 +101,47 @@ function AvatarModel({ src, onReady }) {
     onReady?.();
   }, [onReady]);
 
+  /* ---------------------------------------------------------------- *
+   * Disposal.
+   *
+   * useModelSource hands the loader a fresh blob: URL on every generation, and
+   * drei's useGLTF caches by URL. Nothing would ever evict those entries: the
+   * URL is revoked the moment the fetch effect tears down, so the cache keeps
+   * a parsed scene keyed on a string that can never be requested again, and
+   * the GPU-side buffers and textures it holds are never released. Two or
+   * three context-loss recoveries and the tab is carrying several copies of
+   * the model it can no longer reach.
+   *
+   * So: drop the cache entry and dispose the resources explicitly when this
+   * component goes away. r3f disposes the renderer on unmount, but it does not
+   * own anything drei cached outside the canvas.
+   * ---------------------------------------------------------------- */
+  useEffect(() => {
+    const scene = gltf.scene;
+    return () => {
+      try {
+        useGLTF.clear(src);
+      } catch {
+        /* cache shape changed under us — disposal below still runs */
+      }
+      scene.traverse((obj) => {
+        obj.geometry?.dispose?.();
+        const materials = Array.isArray(obj.material)
+          ? obj.material
+          : obj.material
+          ? [obj.material]
+          : [];
+        for (const material of materials) {
+          for (const key of Object.keys(material)) {
+            const value = material[key];
+            if (value && value.isTexture) value.dispose();
+          }
+          material.dispose?.();
+        }
+      });
+    };
+  }, [src, gltf]);
+
   // Runs inside advance(), never in a loop of its own.
   //
   // Idle motion is a slow sway rather than a full turn: a half-body avatar

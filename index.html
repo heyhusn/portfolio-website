@@ -3,18 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Husnain Aslam — Software &amp; AI Engineer</title>
-<meta name="description" content="Husnain Aslam — software and AI engineer in Lahore. Retrieval systems, on-device ML and production web platforms.">
 <meta name="theme-color" content="#1a1a1b">
 
 <link rel="preload" href="/assets/fonts/antonio-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/inter-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="/assets/img/avatar.svg">
 
+<!--
+  Everything between these markers is REPLACED PER ROUTE at build time by
+  scripts/prerender-meta.mjs, which writes a real HTML file for each route.
+
+  This has to be static HTML, not something React sets. Social crawlers —
+  X, LinkedIn, Facebook, Slack, WhatsApp — do not execute JavaScript. They
+  fetch the document, read the <head>, and leave. Anything a client-side
+  library writes after hydration is invisible to every one of them.
+
+  Edit the defaults here; edit the per-route values in the prerender script.
+-->
+<!--meta:start-->
+<title>Husnain Aslam — Software &amp; AI Engineer</title>
+<meta name="description" content="Husnain Aslam — software and AI engineer in Lahore. Retrieval systems, on-device ML and production web platforms.">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Husnain Aslam">
 <meta property="og:title" content="Husnain Aslam — Software &amp; AI Engineer">
 <meta property="og:description" content="Retrieval systems, on-device ML and production web platforms.">
-<meta property="og:image" content="/assets/img/avatar-poster.webp">
+<meta property="og:image" content="https://portfolio-website-heyhusn.vercel.app/assets/img/avatar-poster.webp">
+<meta property="og:url" content="https://portfolio-website-heyhusn.vercel.app/">
+<link rel="canonical" href="https://portfolio-website-heyhusn.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<!--meta:end-->
 
 <!--
   ADR-09 / FR-AVT-01: the capability tier is resolved before first paint so the
@@ -31,14 +48,29 @@
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) motion = "OFF";
     var mem = navigator.deviceMemory || 0;
     var cores = navigator.hardwareConcurrency || 0;
-    var coarse = window.matchMedia("(pointer: coarse)").matches;
     var conn = navigator.connection || {};
     var slow = conn.saveData === true || /^(slow-)?2g$/.test(conn.effectiveType || "");
     var narrow = Math.min(screen.width, screen.height) < 640;
 
+    /* A mouse or trackpad is AVAILABLE — not "the primary pointer is fine".
+       A touchscreen laptop reports a coarse primary pointer and is still
+       desktop-class; (pointer: coarse) excluded every one of them. */
+    var fine = window.matchMedia("(any-pointer: fine)").matches &&
+               window.matchMedia("(any-hover: hover)").matches;
+
+    /* navigator.deviceMemory is Chromium-only. Firefox and Safari report
+       nothing, so `mem` is 0 there and a `mem >= 8` gate could never pass —
+       every Firefox and Safari visitor was pinned to MID, a Mac Studio
+       included, and FULL is the only tier allowed to mount WebGL. Unknown is
+       unknown, not small: where the browser tells us nothing, lean on the
+       signals it does give (cores, pointer, viewport, network) and let the
+       WebGL2 probe in capability.js disqualify a weak GPU on evidence. */
+    var memFull = mem === 0 || mem >= 8;
+    var memMid = mem === 0 || mem >= 4;
+
     if (slow) tier = "LITE";
-    else if (mem >= 8 && cores >= 8 && !coarse && !narrow) tier = "FULL";
-    else if ((mem >= 4 || mem === 0) && cores >= 4 && !narrow) tier = "MID";
+    else if (memFull && cores >= 8 && fine && !narrow) tier = "FULL";
+    else if (memMid && cores >= 4 && !narrow) tier = "MID";
     else tier = "LITE";
   } catch (e) { /* stay on LITE */ }
   d.setAttribute("data-tier", tier);

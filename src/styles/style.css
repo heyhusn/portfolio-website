@@ -33,7 +33,12 @@
 
   --text:          #ffffff;
   --text-dim:      rgba(255,255,255,.62);
-  --text-faint:    rgba(255,255,255,.42);
+  /* .48, not .42. At .42 this resolves to #7a7a7b on --bg, which is 4.06:1 —
+     below the 4.5:1 WCAG AA needs for body text, and this variable is used for
+     timestamps, credential IDs, form hints and the GitHub calendar's month
+     labels: small text that is already the hardest to read. .48 gives 4.77:1
+     and is still visibly quieter than --text-dim (7.31:1). */
+  --text-faint:    rgba(255,255,255,.48);
   --on-lime:       #1a1a1b;
 
   --r-xs: 10px;
@@ -574,8 +579,15 @@ main,header,footer{ position:relative; z-index:1; }
 .field textarea{ min-height:150px; resize:vertical; }
 .field input::placeholder,.field textarea::placeholder{ color:rgba(255,255,255,.32); }
 .field input:focus,.field select:focus,.field textarea:focus{
-  outline:none; border-color:var(--lime); background:rgba(208,255,113,.05);
+  border-color:var(--lime); background:rgba(208,255,113,.05);
 }
+/* Border colour alone is not a focus indicator — it is one non-text contrast
+   change, which WCAG 2.4.11/1.4.11 do not accept on their own. Keep the
+   colour change for the mouse case, and let the global :focus-visible ring in
+   app.css draw for keyboard focus. */
+.field input:focus:not(:focus-visible),
+.field select:focus:not(:focus-visible),
+.field textarea:focus:not(:focus-visible){ outline:none; }
 .field select{ appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23ffffff' stroke-width='1.6'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 18px center; background-size:12px;

@@ -24,6 +24,7 @@ import RecommendationsSection from "../components/RecommendationsSection.jsx";
 import AskAssistant from "../components/AskAssistant.jsx";
 
 import FlowingPortrait from "../components/FlowingPortrait.jsx";
+import { useDocumentMeta } from "../lib/meta.js";
 
 export default function Home() {
   const { profile, siteContent, sections, getFeaturedProjects, getPublishedPosts } = useStore();
@@ -31,6 +32,11 @@ export default function Home() {
   const posts = getPublishedPosts();
   const heroSlotRef = useRef(null);
   const servicesSlotRef = useRef(null);
+
+  useDocumentMeta({
+    title: profile?.name ? `${profile.name} — Software & AI Engineer` : undefined,
+    description: profile?.tagline || profile?.intro,
+  });
 
   if (!profile || !siteContent) {
     return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading content...</div>;
@@ -45,6 +51,9 @@ export default function Home() {
       case "hero":
         return (
           <section className="hero">
+            <h1 className="sr-only">
+              {profile.name} — {wordL} {wordR}, {profile.role || profile.kicker || "Software & AI Engineer"}
+            </h1>
             <div className="shell">
               <div className="hero__top">
                 <span className="chip">
@@ -56,7 +65,7 @@ export default function Home() {
                 <Reveal>
                   <div className="hero__col hero__col--l">
                     <span className="kicker hero__name">{profile.name}</span>
-                    <h1 className="display hero__word hero__word--l">{wordL}</h1>
+                    <span className="display hero__word hero__word--l" aria-hidden="true">{wordL}</span>
                   </div>
                 </Reveal>
                 <div ref={heroSlotRef} className="hero__figure-wrap hero__figure-slot">
@@ -68,12 +77,16 @@ export default function Home() {
                       width="325"
                       height="440"
                       decoding="async"
-                      fetchPriority="high"
+                      // Lowercase on purpose. React 18 does not recognise the camelCase
+                      // `fetchPriority` prop: it warns and drops the attribute entirely, so
+                      // the LCP priority hint this exists to set was never reaching the
+                      // document. React 19 accepts both spellings; this one works on both.
+                      fetchpriority="high"
                     />
                   </figure>
                 </div>
                 <Reveal delay={2}>
-                  <h1 className="display hero__word hero__word--r">{wordR}</h1>
+                  <span className="display hero__word hero__word--r" aria-hidden="true">{wordR}</span>
                 </Reveal>
               </div>
               <div className="hero__bottom">

@@ -15,21 +15,16 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import db from "../db.mjs";
+import { repo } from "../data/index.mjs";
 import { chunkDocument, recordChunk } from "./chunker.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCES = path.join(__dirname, "sources");
 
-const readJSON = (key, fallback) => {
-  const row = db.prepare("SELECT value FROM site_content WHERE key = ?").get(key);
-  if (!row) return fallback;
-  try {
-    return JSON.parse(row.value);
-  } catch {
-    return fallback;
-  }
-};
+/* The whole site_content map is read once per build rather than key by key —
+   against a hosted database that is one round trip instead of a dozen. */
+let siteMap = {};
+const readJSON = (key, fallback) => siteMap[key] ?? fallback;
 
 const clean = (s) => String(s || "").replace(/\s+/g, " ").trim();
 const bullets = (arr) => (arr || []).map((x) => `- ${clean(x)}`).join("\n");
@@ -37,17 +32,16 @@ const bullets = (arr) => (arr || []).map((x) => `- ${clean(x)}`).join("\n");
 /* ------------------------------------------------------------------ */
 /* 1. Live site content                                                */
 /* ------------------------------------------------------------------ */
-function siteDocuments() {
+async function siteDocuments() {
+  const db = await repo();
+  siteMap = await db.getSiteContent();
   const docs = [];
-  const profile = db.prepare("SELECT * FROM profile WHERE id = 1").get();
+  const profile = await db.getProfile();
 
   if (profile) {
-    const education = (() => {
-      try { return JSON.parse(profile.education || "{}"); } catch { return {}; }
-    })();
-    const stats = (() => {
-      try { return JSON.parse(profile.stats || "[]"); } catch { return []; }
-    })();
+    // The repository already returns these parsed, whichever driver is in use.
+    const education = profile.education || {};
+    const stats = profile.stats || [];
 
     docs.push({
       id: "site:profile",
@@ -81,12 +75,11 @@ function siteDocuments() {
   // Projects — one document each. A project is a unit; splitting one across
   // chunks is what makes a RAG answer attribute the wrong metric to the wrong
   // system, which is the single worst failure mode for this corpus.
-  const projects = db.prepare("SELECT * FROM projects ORDER BY ordering ASC").all();
+  const projects = await db.listProjects();
   for (const p of projects) {
-    const parse = (v, f) => { try { return JSON.parse(v || "null") ?? f; } catch { return f; } };
-    const highlights = parse(p.highlights, []);
-    const stack = parse(p.stack, []);
-    const links = parse(p.links, []);
+    const highlights = p.highlights || [];
+    const stack = p.stack || [];
+    const links = p.links || [];
     docs.push({
       id: `site:project:${p.slug}`,
       source: "site",
@@ -233,11 +226,9 @@ function siteDocuments() {
 
   // Blog posts, published only — a draft is by definition something he has not
   // chosen to say in public yet, and the assistant is public.
-  const posts = db.prepare("SELECT * FROM posts WHERE isDraft = 0").all();
+  const posts = (await db.listPosts()).filter((p) => !p.isDraft);
   for (const post of posts) {
-    let body = [];
-    try { body = JSON.parse(post.body || "[]"); } catch { body = []; }
-    const text = body.map((b) => clean(b.text || b)).filter(Boolean).join("\n\n");
+    const text = (post.body || []).map((b) => clean(b.text || b)).filter(Boolean).join("\n\n");
     if (!text) continue;
     docs.push({
       id: `site:post:${post.slug}`,
@@ -363,8 +354,8 @@ function githubDocuments() {
 }
 
 /* ------------------------------------------------------------------ */
-export function buildCorpus() {
-  const docs = [...siteDocuments(), ...fileDocuments(), ...githubDocuments()];
+export async function buildCorpus() {
+  const docs = [...(await siteDocuments()), ...fileDocuments(), ...githubDocuments()];
   const chunks = [];
   for (const doc of docs) {
     // Structured site records are small and self-contained — keep them whole.

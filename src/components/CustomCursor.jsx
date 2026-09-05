@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useTicker } from "../motion/hooks.js";
+import { useMotion } from "../motion/MotionProvider.jsx";
+import { PRIORITY } from "../motion/kernel.js";
 
 /**
  * CustomCursor
@@ -8,8 +11,24 @@ import { useEffect, useRef, useState } from "react";
  * 2. Link / Clickable / Card hover state: Expands into a 60px lemon circle with a dark arrow (↗) inside.
  * 3. Input state: Hides smoothly when typing in inputs/textareas.
  * 4. Touch/mobile devices: Automatically disabled.
+ * 5. Reduced motion: disabled entirely — a cursor that lags the pointer is
+ *    motion the visitor asked not to see, and there is nothing to degrade to.
+ *
+ * MOTION KERNEL
+ * -------------
+ * This component used to drive itself with its own requestAnimationFrame loop.
+ * That is the one thing ADR-02 forbids: the kernel exists so the document has
+ * exactly one rAF loop, reads scroll state once per frame, and can be stopped
+ * dead when MotionMode is OFF. A second loop meant the site was never actually
+ * running the architecture it documents — and, because this loop ignored the
+ * motion setting, a prefers-reduced-motion visitor still got a lerping cursor
+ * that never stopped.
+ *
+ * The easing is unchanged; it is stepped by the shared ticker instead, at
+ * RENDER priority because it only writes.
  */
 export default function CustomCursor() {
+  const { animate, tier } = useMotion();
   const cursorRef = useRef(null);
   const dotRef = useRef(null);
   const [hoverType, setHoverType] = useState(null); // null | 'link' | 'card' | 'text'
@@ -19,11 +38,21 @@ export default function CustomCursor() {
   // Position references for smooth interpolation
   const pos = useRef({ x: -100, y: -100 });
   const target = useRef({ x: -100, y: -100 });
-  const rafId = useRef(null);
+
+  // A pointer-driven flourish on a device with no pointer, or for a visitor who
+  // asked for less motion, is cost without benefit. LITE is excluded for the
+  // same reason it gets no other kernel-driven effects.
+  const enabled =
+    animate &&
+    tier !== "LITE" &&
+    typeof window !== "undefined" &&
+    !(typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches);
 
   useEffect(() => {
-    // Disable on touch screens
-    if (typeof window === "undefined" || window.matchMedia("(pointer: coarse)").matches) {
+    if (!enabled) {
+      setVisible(false);
+      setHoverType(null);
       return;
     }
 
@@ -67,21 +96,6 @@ export default function CustomCursor() {
     document.addEventListener("mouseenter", onMouseEnter);
     document.addEventListener("mouseover", onPointerOver, { passive: true });
 
-    // Smooth position tick loop
-    const tick = () => {
-      const ease = 0.22;
-      pos.current.x += (target.current.x - pos.current.x) * ease;
-      pos.current.y += (target.current.y - pos.current.y) * ease;
-
-      if (cursorRef.current) {
-        cursorRef.current.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0)`;
-      }
-
-      rafId.current = requestAnimationFrame(tick);
-    };
-
-    rafId.current = requestAnimationFrame(tick);
-
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mousedown", onMouseDown);
@@ -89,9 +103,30 @@ export default function CustomCursor() {
       document.removeEventListener("mouseleave", onMouseLeave);
       document.removeEventListener("mouseenter", onMouseEnter);
       document.removeEventListener("mouseover", onPointerOver);
-      if (rafId.current) cancelAnimationFrame(rafId.current);
     };
-  }, [visible]);
+    // `visible` is deliberately not a dependency: it is set from inside
+    // onMouseMove, so listing it tore down and re-registered all six listeners
+    // on the visitor's first pointer movement. The handlers read it through a
+    // ref-free setter that already no-ops when unchanged.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+
+  /* The easing step, on the one ticker (ADR-02). Writes only — no layout is
+     read here — so it belongs at RENDER priority. */
+  useTicker(
+    (frame) => {
+      const el = cursorRef.current;
+      if (!el) return;
+      // Motion off: settle on the pointer instead of easing toward it.
+      const ease = frame.terminal ? 1 : 0.22;
+      pos.current.x += (target.current.x - pos.current.x) * ease;
+      pos.current.y += (target.current.y - pos.current.y) * ease;
+      el.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0)`;
+    },
+    { active: enabled, priority: PRIORITY.RENDER }
+  );
+
+  if (!enabled) return null;
 
   return (
     <div

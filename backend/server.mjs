@@ -5,7 +5,7 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import db from "./db.mjs";
+import { repo, usingPostgres } from "./data/index.mjs";
 import registerGitHubRoutes from "./github.mjs";
 import registerRagRoutes from "./rag/routes.mjs";
 
@@ -13,19 +13,59 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
 // --- Secret key -------------------------------------------------------
-// A hardcoded secret in source control means anyone who can read the repo
-// can mint valid admin tokens. Require it from the environment; only fall
-// back to a per-boot random secret (with a loud warning) so a forgotten
-// .env fails safe in dev instead of shipping a known key to production.
+// A hardcoded secret in source control means anyone who can read the repo can
+// mint valid admin tokens, so it has to come from the environment.
+//
+// The dev fallback below is a per-boot random secret. That is right for one
+// long-lived local process — a forgotten .env fails safe instead of shipping a
+// known key — and completely wrong anywhere the process restarts: every
+// restart mints a new secret, so every admin token issued before it silently
+// stops verifying and the session drops with no explanation. On a host that
+// redeploys, crashes or scales, that is constant.
+//
+// So: warn in development, refuse to start in production.
+const LOOKS_LIKE_PRODUCTION =
+  process.env.NODE_ENV === "production" || Boolean(process.env.DATABASE_URL);
+
+// 32 characters ≈ 128 bits when hex. Shorter than this is brute-forceable
+// offline against any token the holder has, and a token is a login.
+const MIN_SECRET_LENGTH = 32;
+
+const generateHint =
+  'Generate one with:\n' +
+  '  node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"';
+
 let SECRET_KEY = process.env.JWT_SECRET;
+
 if (!SECRET_KEY) {
+  if (LOOKS_LIKE_PRODUCTION) {
+    console.error(
+      "\n[auth] JWT_SECRET is not set, and this looks like production " +
+        `(${process.env.NODE_ENV === "production" ? "NODE_ENV=production" : "DATABASE_URL is set"}).\n\n` +
+        "Refusing to start rather than invent a secret. A per-boot random secret\n" +
+        "invalidates every admin session on every restart, which looks like a bug\n" +
+        "in the login rather than a missing variable.\n\n" +
+        generateHint +
+        "\n"
+    );
+    process.exit(1);
+  }
   SECRET_KEY = crypto.randomUUID() + crypto.randomUUID();
   console.warn(
-    "[auth] JWT_SECRET is not set in backend/.env — using a random secret " +
-      "for this process only. Every restart will invalidate existing admin " +
-      "sessions. Copy backend/.env.example to backend/.env and set a real " +
-      "secret before deploying."
+    "[auth] JWT_SECRET is not set in backend/.env — using a random secret for " +
+      "this process only. Restarting will sign you out of /admin. Fine for local " +
+      "work; set a real one before deploying."
   );
+} else if (SECRET_KEY.length < MIN_SECRET_LENGTH) {
+  const message =
+    `[auth] JWT_SECRET is only ${SECRET_KEY.length} characters. ` +
+    `Use at least ${MIN_SECRET_LENGTH} — a short secret can be brute-forced offline ` +
+    "from any token, and a token is a login.\n" + generateHint;
+  if (LOOKS_LIKE_PRODUCTION) {
+    console.error("\n" + message + "\n");
+    process.exit(1);
+  }
+  console.warn(message);
 }
 
 // --- CORS ---------------------------------------------------------------
@@ -77,66 +117,49 @@ const loginLimiter = rateLimit({
 });
 
 // --- Auth routes ------------------------------------------------------
-app.post("/api/auth/login", loginLimiter, (req, res) => {
-  const { username, password } = req.body || {};
-  if (!isNonEmptyString(username) || !isNonEmptyString(password)) {
-    return res.status(400).json({ error: "Username and password are required" });
-  }
+app.post("/api/auth/login", loginLimiter, async (req, res, next) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!isNonEmptyString(username) || !isNonEmptyString(password)) {
+      return res.status(400).json({ error: "Username and password are required" });
+    }
 
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-  const ok = user && bcrypt.compareSync(password, user.password);
-  if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+    const db = await repo();
+    const user = await db.findUser(username);
+    const ok = user && bcrypt.compareSync(password, user.password);
+    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-  const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: "24h" });
-  res.json({ token });
+    const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: "24h" });
+    res.json({ token });
+  } catch (err) { next(err); }
 });
 
 // --- Profile routes ------------------------------------------------------
-app.get("/api/profile", (req, res) => {
-  const profile = db.prepare("SELECT * FROM profile WHERE id = 1").get();
-  if (profile) {
-    profile.heroWords = JSON.parse(profile.heroWords || "[]");
-    profile.socials = JSON.parse(profile.socials || "{}");
-    profile.stats = JSON.parse(profile.stats || "[]");
-    profile.education = JSON.parse(profile.education || "{}");
-  }
-  res.json(profile || null);
+app.get("/api/profile", async (req, res, next) => {
+  try {
+    res.json(await (await repo()).getProfile());
+  } catch (err) { next(err); }
 });
 
-app.put("/api/profile", authenticateToken, (req, res) => {
-  const profile = req.body || {};
-  if (!isNonEmptyString(profile.name) || !isNonEmptyString(profile.email)) {
-    return res.status(400).json({ error: "Name and email are required" });
-  }
-  const stmt = db.prepare(`
-    UPDATE profile SET
-      name = ?, heroWords = ?, kicker = ?, availability = ?, role = ?, location = ?, tagline = ?, intro = ?,
-      aboutEyebrow = ?, aboutTitle = ?, aboutLead = ?, email = ?, phone = ?, phoneHref = ?, socials = ?, stats = ?, education = ?
-    WHERE id = 1
-  `);
-  stmt.run(
-    profile.name, JSON.stringify(profile.heroWords || []), profile.kicker || "", profile.availability || "",
-    profile.role || "", profile.location || "", profile.tagline || "", profile.intro || "",
-    profile.aboutEyebrow || "", profile.aboutTitle || "", profile.aboutLead || "", profile.email,
-    profile.phone || "", profile.phoneHref || "", JSON.stringify(profile.socials || {}),
-    JSON.stringify(profile.stats || []), JSON.stringify(profile.education || {})
-  );
-  res.json({ success: true });
+app.put("/api/profile", authenticateToken, async (req, res, next) => {
+  try {
+    const profile = req.body || {};
+    if (!isNonEmptyString(profile.name) || !isNonEmptyString(profile.email)) {
+      return res.status(400).json({ error: "Name and email are required" });
+    }
+    await (await repo()).saveProfile(profile);
+    res.json({ success: true });
+  } catch (err) { next(err); }
 });
 
 // --- Projects routes -------------------------------------------------
-app.get("/api/projects", (req, res) => {
-  const projects = db.prepare("SELECT * FROM projects ORDER BY ordering ASC").all();
-  projects.forEach((p) => {
-    p.featured = !!p.featured;
-    p.highlights = JSON.parse(p.highlights || "[]");
-    p.stack = JSON.parse(p.stack || "[]");
-    p.links = JSON.parse(p.links || "[]");
-  });
-  res.json(projects);
+app.get("/api/projects", async (req, res, next) => {
+  try {
+    res.json(await (await repo()).listProjects());
+  } catch (err) { next(err); }
 });
 
-app.put("/api/projects", authenticateToken, (req, res) => {
+app.put("/api/projects", authenticateToken, async (req, res, next) => {
   const projects = req.body;
   if (!isArray(projects)) return res.status(400).json({ error: "Expected an array of projects" });
   for (const p of projects) {
@@ -144,51 +167,25 @@ app.put("/api/projects", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "Every project needs a slug and a title" });
     }
   }
-  const slugs = new Set(projects.map((p) => p.slug));
-  if (slugs.size !== projects.length) {
+  if (new Set(projects.map((p) => p.slug)).size !== projects.length) {
     return res.status(400).json({ error: "Project slugs must be unique" });
   }
-
-  const deleteStmt = db.prepare("DELETE FROM projects");
-  const insertStmt = db.prepare(`
-    INSERT INTO projects (slug, title, tag, year, image, featured, summary, description, highlights, stack, links, note, ordering)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   try {
-    db.transaction(() => {
-      deleteStmt.run();
-      projects.forEach((p, idx) => {
-        insertStmt.run(
-          p.slug, p.title, p.tag || "", p.year || "", p.image || "", p.featured ? 1 : 0,
-          p.summary || "", p.description || "", JSON.stringify(p.highlights || []),
-          JSON.stringify(p.stack || []), JSON.stringify(p.links || []), p.note || null, idx
-        );
-      });
-    })();
+    await (await repo()).replaceProjects(projects);
+    res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ error: "Could not save projects: " + err.message });
+    res.status(400).json({ error: "Could not save projects: " + err.message });
   }
-  res.json({ success: true });
 });
 
 // --- Posts routes ------------------------------------------------------
-// Field names mirror what the public blog pages (PostCard, BlogPost) read:
-// date + dateLabel, excerpt, and body (an array of {type, text} blocks).
-app.get("/api/posts", (req, res) => {
-  const posts = db.prepare("SELECT * FROM posts").all();
-  posts.forEach((p) => {
-    p.isDraft = !!p.isDraft;
-    try {
-      p.body = JSON.parse(p.body || "[]");
-    } catch {
-      p.body = [];
-    }
-  });
-  res.json(posts);
+app.get("/api/posts", async (req, res, next) => {
+  try {
+    res.json(await (await repo()).listPosts());
+  } catch (err) { next(err); }
 });
 
-app.put("/api/posts", authenticateToken, (req, res) => {
+app.put("/api/posts", authenticateToken, async (req, res, next) => {
   const posts = req.body;
   if (!isArray(posts)) return res.status(400).json({ error: "Expected an array of posts" });
   for (const p of posts) {
@@ -196,104 +193,54 @@ app.put("/api/posts", authenticateToken, (req, res) => {
       return res.status(400).json({ error: "Every post needs a slug and a title" });
     }
   }
-  const slugs = new Set(posts.map((p) => p.slug));
-  if (slugs.size !== posts.length) {
+  if (new Set(posts.map((p) => p.slug)).size !== posts.length) {
     return res.status(400).json({ error: "Post slugs must be unique" });
   }
-
-  const deleteStmt = db.prepare("DELETE FROM posts");
-  const insertStmt = db.prepare(`
-    INSERT INTO posts (slug, title, date, dateLabel, category, excerpt, body, image, isDraft)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   try {
-    db.transaction(() => {
-      deleteStmt.run();
-      posts.forEach((p) => {
-        insertStmt.run(
-          p.slug, p.title, p.date || "", p.dateLabel || "", p.category || "", p.excerpt || "",
-          JSON.stringify(p.body || []), p.image || "", p.isDraft ? 1 : 0
-        );
-      });
-    })();
+    await (await repo()).replacePosts(posts);
+    res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ error: "Could not save posts: " + err.message });
+    res.status(400).json({ error: "Could not save posts: " + err.message });
   }
-  res.json({ success: true });
 });
 
 // --- Site content routes ------------------------------------------------
-app.get("/api/site", (req, res) => {
-  const content = db.prepare("SELECT * FROM site_content").all();
-  const result = {};
-  content.forEach((item) => {
-    try {
-      result[item.key] = JSON.parse(item.value);
-    } catch {
-      result[item.key] = item.value;
-    }
-  });
-  res.json(result);
+app.get("/api/site", async (req, res, next) => {
+  try {
+    res.json(await (await repo()).getSiteContent());
+  } catch (err) { next(err); }
 });
 
-app.put("/api/site", authenticateToken, (req, res) => {
+app.put("/api/site", authenticateToken, async (req, res, next) => {
   const content = req.body;
   if (!content || typeof content !== "object" || Array.isArray(content)) {
     return res.status(400).json({ error: "Expected an object of site content keys" });
   }
-  const stmt = db.prepare("INSERT OR REPLACE INTO site_content (key, value) VALUES (?, ?)");
-  db.transaction(() => {
-    Object.keys(content).forEach((key) => {
-      stmt.run(key, JSON.stringify(content[key]));
-    });
-  })();
-  res.json({ success: true });
+  try {
+    await (await repo()).saveSiteContent(content);
+    res.json({ success: true });
+  } catch (err) { next(err); }
 });
 
 // --- Sections routes ------------------------------------------------------
-app.get("/api/sections", (req, res) => {
-  const sections = db.prepare("SELECT * FROM sections ORDER BY ordering ASC").all();
-  sections.forEach((s) => {
-    s.is_visible = !!s.is_visible;
-    if (s.content) {
-      try {
-        s.content = JSON.parse(s.content);
-      } catch {
-        s.content = null;
-      }
-    }
-  });
-  res.json(sections);
+app.get("/api/sections", async (req, res, next) => {
+  try {
+    res.json(await (await repo()).listSections());
+  } catch (err) { next(err); }
 });
 
-app.put("/api/sections", authenticateToken, (req, res) => {
+app.put("/api/sections", authenticateToken, async (req, res, next) => {
   const sections = req.body;
   if (!isArray(sections)) return res.status(400).json({ error: "Expected an array of sections" });
   for (const s of sections) {
     if (!isNonEmptyString(s.id)) return res.status(400).json({ error: "Every section needs an id" });
   }
-
-  const deleteStmt = db.prepare("DELETE FROM sections");
-  const insertStmt = db.prepare(
-    "INSERT INTO sections (id, title, is_visible, ordering, animation_type, font_family, type, content) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-
   try {
-    db.transaction(() => {
-      deleteStmt.run();
-      sections.forEach((s, idx) => {
-        insertStmt.run(
-          s.id, s.title || "", s.is_visible ? 1 : 0, idx,
-          s.animation_type || "default", s.font_family || "default", s.type || "predefined",
-          s.content ? JSON.stringify(s.content) : null
-        );
-      });
-    })();
+    await (await repo()).replaceSections(sections);
+    res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ error: "Could not save sections: " + err.message });
+    res.status(400).json({ error: "Could not save sections: " + err.message });
   }
-  res.json({ success: true });
 });
 
 // --- GitHub proxy (contribution calendar + public profile stats) ------
@@ -303,7 +250,21 @@ registerGitHubRoutes(app);
 registerRagRoutes(app, authenticateToken);
 
 // --- Health check (useful once this is deployed somewhere real) --------
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+// Reports configuration readiness, never values. "Why is the admin panel
+// failing on the deployed site" is almost always one of these three being
+// unset, and this answers it without a redeploy or a log dive.
+app.get("/api/health", (req, res) =>
+  res.json({
+    ok: true,
+    dataStore: usingPostgres() ? "postgres" : "sqlite",
+    jwtSecret: process.env.JWT_SECRET
+      ? process.env.JWT_SECRET.length >= MIN_SECRET_LENGTH
+        ? "configured"
+        : "too-short"
+      : "missing (random per-boot — sessions drop on restart)",
+    llm: process.env.LLM_API_KEY ? "configured" : "missing",
+  })
+);
 
 // --- 404 + error handling ------------------------------------------------
 // Without these, an unknown route or a thrown error (a bad JSON body, a
@@ -318,5 +279,8 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Admin API running on http://localhost:" + PORT);
+  console.log(
+    `Admin API running on http://localhost:${PORT} — data store: ` +
+      (usingPostgres() ? "Postgres (DATABASE_URL)" : "SQLite (backend/portfolio.db)")
+  );
 });

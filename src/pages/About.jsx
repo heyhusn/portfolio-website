@@ -1,15 +1,21 @@
+import { Link } from "react-router-dom";
 import Reveal from "../components/Reveal.jsx";
 import SectionHead from "../components/SectionHead.jsx";
 import ContactSection from "../components/ContactSection.jsx";
-import SkillsSection from "../components/SkillsSection.jsx";
-import CertificationsSection from "../components/CertificationsSection.jsx";
 import VolunteeringSection from "../components/VolunteeringSection.jsx";
 import GitHubActivity from "../components/GitHubActivity.jsx";
 import RecommendationsSection from "../components/RecommendationsSection.jsx";
+import { ArrowUpRight } from "../components/Icons.jsx";
 import { useStore } from "../store.js";
+import { useDocumentMeta } from "../lib/meta.js";
 
 export default function About() {
   const { profile, siteContent } = useStore();
+  useDocumentMeta({
+    title: `About — ${profile?.name || "Husnain Aslam"}`,
+    description: profile?.intro,
+  });
+
   const experience = siteContent?.experience || [];
   const processSteps = siteContent?.process || [];
   const education = profile?.education;
@@ -94,11 +100,26 @@ export default function About() {
         </section>
       ) : null}
 
-      {/* ============ SKILLS ============ */}
-      <SkillsSection id="stack" />
-
-      {/* ============ CERTIFICATIONS ============ */}
-      <CertificationsSection />
+      {/* ============ VERIFIED CREDENTIALS ============ */}
+      <section className="section section--tight" id="credentials">
+        <div className="shell">
+          <Reveal>
+            <div className="edu" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 24 }}>
+              <div>
+                <span className="eyebrow">Verified Credentials</span>
+                <h2 className="h3" style={{ marginTop: 10 }}>Technical Skills &amp; Certifications</h2>
+                <p className="lead" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                  A complete, categorized inventory of frameworks, architectures, and audited credential IDs.
+                </p>
+              </div>
+              <Link className="btn btn--lime btn--lg" to="/resume">
+                Explore Full Resume &amp; Skills
+                <ArrowUpRight className="btn__arrow" />
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ============ GITHUB ============ */}
       <GitHubActivity />

@@ -5,11 +5,17 @@ import ContactSection from "../components/ContactSection.jsx";
 import SectionHead from "../components/SectionHead.jsx";
 import { ArrowUpRight, Check } from "../components/Icons.jsx";
 import { useStore } from "../store.js";
+import { useDocumentMeta } from "../lib/meta.js";
 
 export default function ProjectDetail() {
   const { slug } = useParams();
   const { findProject, projects } = useStore();
   const project = findProject(slug);
+  useDocumentMeta({
+    title: project?.title ? `${project?.title} — Husnain Aslam` : undefined,
+    description: project?.summary,
+  });
+
 
   if (!project) return <Navigate to="/projects" replace />;
 
@@ -44,7 +50,7 @@ export default function ProjectDetail() {
         <div className="shell">
           <Reveal>
             <figure className="detail-hero">
-              <img src={project.image} alt="" />
+              <img src={project.image} alt={`${project.title} project preview`} />
             </figure>
           </Reveal>
         </div>

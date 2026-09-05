@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, Children } from "react";
-import { useTicker, useMeasure } from "../motion/hooks.js";
+import { useTicker, useMeasure, useInViewport } from "../motion/hooks.js";
 import { useMotion, TIER, MOTION } from "../motion/MotionProvider.jsx";
 import { PRIORITY } from "../motion/kernel.js";
 
@@ -37,6 +37,10 @@ export default function Marquee({
   const cssDriven = tier === TIER.MID && motion !== MOTION.OFF;
 
   const [trackRef, trackRect] = useMeasure();
+  // Off-screen strips are frozen rather than stepped: there are several of
+  // these on the home page (ticker words, recognition, recommendations) and
+  // at most one is ever on screen at a time.
+  const [viewRef, inViewport] = useInViewport();
   const innerRef = useRef(null);
   const offset = useRef(0);
   const currentSpeed = useRef(speed);
@@ -79,13 +83,14 @@ export default function Marquee({
 
       el.style.transform = `translate3d(${offset.current.toFixed(2)}px,0,0)`;
     },
-    { active: kernelDriven && half > 0, priority: PRIORITY.RENDER }
+    { active: kernelDriven && half > 0 && inViewport, priority: PRIORITY.RENDER }
   );
 
   const kids = Children.toArray(children);
 
   return (
     <div
+      ref={viewRef}
       className={`marquee${reverse && cssDriven ? " marquee--rev" : ""}${paused ? " is-paused" : ""} ${className}`.trim()}
       style={style}
       onPointerEnter={() => setHover(true)}

@@ -10,6 +10,15 @@ const DEFAULT_CONTRIB_API = "https://github-contributions-api.jogruber.de/v4";
 const CACHE_TTL_MS = 60 * 60 * 1000; // GitHub allows 60 unauthenticated calls/hour/IP.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** The labels of the four stat tiles, so the placeholder set is the same size
+ *  and shape as the real one. Must match statTiles below. */
+const SKELETON_STATS = [
+  "Contributions, last year",
+  "Public repositories",
+  "Stars earned",
+  "Followers",
+];
+
 /**
  * Reads a cached response from sessionStorage, ignoring anything stale or
  * unparseable. Wrapped because Safari private mode throws on access rather
@@ -248,6 +257,20 @@ export default function GitHubActivity({ id = "github" }) {
                   </li>
                 ))}
               </ul>
+            ) : state === "loading" ? (
+              // Same four tiles, same box, no numbers yet. GitHub's API is a
+              // live third-party call — nothing can know these figures at
+              // build time — so the honest fix is to reserve the space rather
+              // than let the section grow by ~320px when the response lands
+              // and shove everything below it down the page.
+              <ul className="gh__stats gh__stats--skeleton" aria-hidden="true">
+                {SKELETON_STATS.map((label) => (
+                  <li key={label}>
+                    <span className="gh__stat-v">—</span>
+                    <span className="gh__stat-l">{label}</span>
+                  </li>
+                ))}
+              </ul>
             ) : null}
 
             {weeks.length ? (
@@ -293,7 +316,41 @@ export default function GitHubActivity({ id = "github" }) {
                 </div>
               </>
             ) : state === "loading" ? (
-              <p className="gh__note">Loading contribution history…</p>
+              // The empty grid at full size: 53 weeks of the same cells the
+              // real calendar uses, so the swap to live data changes colours
+              // and nothing else. The status text is announced rather than
+              // printed — a visible line would itself be a height the loaded
+              // state does not have.
+              <>
+                <div className="gh__cal-wrap" aria-hidden="true">
+                  <div className="gh__cal gh__cal--skeleton">
+                    <div className="gh__months">
+                      {Array.from({ length: 53 }, (_, i) => (
+                        <span key={i} className="gh__month" />
+                      ))}
+                    </div>
+                    <div className="gh__weeks">
+                      {Array.from({ length: 53 }, (_, wi) => (
+                        <div className="gh__week" key={wi}>
+                          {Array.from({ length: 7 }, (_, di) => (
+                            <span key={di} className="gh__day" data-level="0" />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="gh__legend" aria-hidden="true">
+                  <span>Less</span>
+                  {[0, 1, 2, 3, 4].map((l) => (
+                    <span key={l} className="gh__day" data-level={l} />
+                  ))}
+                  <span>More</span>
+                </div>
+                <p className="gh__sr" role="status">
+                  Loading contribution history…
+                </p>
+              </>
             ) : (
               <p className="gh__note">
                 The contribution calendar couldn't be loaded right now — GitHub's public

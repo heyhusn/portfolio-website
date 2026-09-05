@@ -5,6 +5,7 @@ import SectionHead from "../components/SectionHead.jsx";
 import ContactSection from "../components/ContactSection.jsx";
 import { ArrowUpRight, Check } from "../components/Icons.jsx";
 import { useStore } from "../store.js";
+import { useDocumentMeta } from "../lib/meta.js";
 
 function Block({ block }) {
   switch (block.type) {
@@ -38,6 +39,11 @@ export default function BlogPost() {
   const { slug } = useParams();
   const { findPost, getPublishedPosts } = useStore();
   const post = findPost(slug);
+  useDocumentMeta({
+    title: post?.title ? `${post?.title} — Husnain Aslam` : undefined,
+    description: post?.excerpt,
+  });
+
 
   // findPost already excludes drafts, so an unpublished slug 404s here
   // exactly like an unknown one instead of leaking scaffold content.
@@ -76,7 +82,7 @@ export default function BlogPost() {
         <div className="shell">
           <Reveal>
             <figure className="detail-hero">
-              <img src={post.image} alt="" />
+              <img src={post.image} alt={`${post.title} article cover`} />
             </figure>
           </Reveal>
         </div>

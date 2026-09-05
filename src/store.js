@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { getProfile, getProjects, getPosts, getSiteContent, getSections } from './lib/api.js';
+import { getProfile, getProjects, getPosts, getSiteContent, getSections, describeApiFailure } from './lib/api.js';
 import {
   fallbackProfile,
   fallbackProjects,
   fallbackPosts,
   fallbackSiteContent,
+  snapshotSections,
   DEFAULT_SECTIONS,
 } from './data/fallback.js';
 
@@ -71,14 +72,41 @@ function mergeSiteContent(fromApi) {
   return { ...bundled, ...fromApi };
 }
 
+/**
+ * Keep the object we already have when the incoming one says the same thing.
+ *
+ * Zustand compares by reference, so `set({ profile })` with a freshly parsed
+ * but identical object re-renders every subscriber and makes React reconcile
+ * a tree that cannot have changed. With the build-time snapshot in place that
+ * is now the *normal* case — first paint and the API response are the same
+ * content on any deploy nobody has edited since — so it is worth one
+ * stringify to avoid the render entirely.
+ *
+ * JSON.stringify is order-sensitive, which would normally make it a poor
+ * equality test; here both sides come out of the same serializer for the same
+ * rows, so key order is stable. A false negative just means the old
+ * behaviour: one extra render.
+ */
+const same = (a, b) => {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+};
+const keepIfUnchanged = (incoming, current) => (same(incoming, current) ? current : incoming);
+
 export const useStore = create((set, get) => ({
   profile: fallbackProfile(),
   projects: fallbackProjects(),
   posts: fallbackPosts(),
   siteContent: fallbackSiteContent(),
-  sections: DEFAULT_SECTIONS,
+  // A snapshot taken from an older database still gets sections the code has
+  // added since — same reconciliation the API response gets, below.
+  sections: mergeSections(snapshotSections(), DEFAULT_SECTIONS),
   loading: false,
   apiReachable: null, // null = not checked yet, true/false once fetchData settles
+  apiError: null,     // human-readable reason, when it failed
 
   fetchData: async () => {
     try {
@@ -91,20 +119,31 @@ export const useStore = create((set, get) => ({
       ]);
       // A freshly-created (unseeded) backend returns empty/null shapes —
       // don't let that blank out content that's already on screen.
+      const current = get();
       set({
-        profile: profile || get().profile,
-        projects: projects?.length ? projects : get().projects,
-        posts: posts?.length ? posts : get().posts,
-        siteContent: mergeSiteContent(siteContent),
-        sections: mergeSections(sections, get().sections),
+        profile: keepIfUnchanged(profile || current.profile, current.profile),
+        projects: keepIfUnchanged(projects?.length ? projects : current.projects, current.projects),
+        posts: keepIfUnchanged(posts?.length ? posts : current.posts, current.posts),
+        siteContent: keepIfUnchanged(mergeSiteContent(siteContent), current.siteContent),
+        sections: keepIfUnchanged(mergeSections(sections, current.sections), current.sections),
         loading: false,
         apiReachable: true,
+        apiError: null,
       });
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.warn("[store] admin API unreachable, showing bundled content:", err?.message || err);
-      }
-      set({ loading: false, apiReachable: false });
+      // Warn in production too, not just in dev.
+      //
+      // Falling back to bundled content is the right behaviour — the site
+      // stays up — but doing it silently means a broken API in production is
+      // invisible: every page looks correct, serving content frozen at build
+      // time, and the first symptom is an admin edit that "doesn't show up".
+      // One line, naming the URL and the likely cause, turns that into a
+      // thirty-second diagnosis.
+      const reason = describeApiFailure(err);
+      console.warn(
+        `[portfolio] Content API unreachable — serving content bundled at build time. ${reason}`
+      );
+      set({ loading: false, apiReachable: false, apiError: reason });
     }
   },
 

@@ -1,6 +1,10 @@
 {
-  "present": false,
-  "src": null,
-  "bytes": 0,
-  "hash": null
+  "present": true,
+  "src": "/models/avatar.f929d7afcc.glb",
+  "bytes": 892828,
+  "transferred": 884390,
+  "hash": "f929d7afcc",
+  "draco": true,
+  "meshopt": false,
+  "ktx2": true
 }

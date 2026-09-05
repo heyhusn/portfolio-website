@@ -11,7 +11,7 @@
 import buildCorpus from "./corpus.mjs";
 import { saveChunks, indexStats } from "./store.mjs";
 
-const { docs, chunks } = buildCorpus();
+const { docs, chunks } = await buildCorpus();
 
 if (!chunks.length) {
   console.error(
@@ -21,9 +21,9 @@ if (!chunks.length) {
   process.exit(1);
 }
 
-saveChunks(chunks);
+await saveChunks(chunks);
 
-const stats = indexStats();
+const stats = await indexStats();
 const chars = chunks.reduce((a, c) => a + c.text.length, 0);
 
 console.log(`Ingested ${docs.length} documents into ${chunks.length} chunks (${(chars / 1000).toFixed(1)}k chars).`);

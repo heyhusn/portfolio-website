@@ -5,6 +5,7 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useMotion, TIER } from "../motion/MotionProvider.jsx";
@@ -35,6 +36,9 @@ import manifest from "./model-manifest.json";
 // Gate 5's payload. This dynamic import is the only reference to the WebGL
 // chunk anywhere in the entry graph.
 const AvatarCanvas = lazy(() => import("./AvatarCanvas.jsx"));
+
+/** How many times a lost WebGL context may be re-requested before we stop. */
+const MAX_RECOVERY_ATTEMPTS = 2;
 
 /** Catches anything the lazy chunk or the scene throws during render. */
 class SceneBoundary extends Component {
@@ -88,9 +92,17 @@ const SignatureScene = forwardRef(function SignatureScene(
   const [lost, setLost] = useState(false);
   const [failed, setFailed] = useState(false);
   const [visible, setVisible] = useState(false);
+  // Recovery is bounded. A device that loses its context because too many
+  // contexts already exist will lose the next one too, and an uncapped remount
+  // loop turns one failure into a permanent cycle of allocating and discarding
+  // GPU contexts. After MAX_RECOVERY_ATTEMPTS the poster stands for the rest of
+  // the session - a supported state, not a degraded one (FR-AVT-02).
+  const [exhausted, setExhausted] = useState(false);
+  const attempts = useRef(0);
 
   // Gates 1–3.
-  const eligible = webgl && manifest.present && inView && !failed && !lost;
+  const eligible =
+    webgl && manifest.present && inView && !failed && !lost && !exhausted;
 
   // Gate 4.
   const { status, src } = useModelSource(manifest.src, eligible);
@@ -101,6 +113,12 @@ const SignatureScene = forwardRef(function SignatureScene(
   }, []);
 
   const handleRestored = useCallback(() => {
+    if (attempts.current >= MAX_RECOVERY_ATTEMPTS) {
+      setExhausted(true);
+      setLost(false);
+      return;
+    }
+    attempts.current += 1;
     setLost(false);
     setGeneration((g) => g + 1);
   }, []);
@@ -110,6 +128,12 @@ const SignatureScene = forwardRef(function SignatureScene(
   useEffect(() => {
     if (!lost) return;
     const t = setTimeout(() => {
+      if (attempts.current >= MAX_RECOVERY_ATTEMPTS) {
+        setExhausted(true);
+        setLost(false);
+        return;
+      }
+      attempts.current += 1;
       setLost(false);
       setGeneration((g) => g + 1);
     }, 1200);
@@ -142,7 +166,11 @@ const SignatureScene = forwardRef(function SignatureScene(
         height="440"
         decoding="async"
         // Only the poster is eager: it is the LCP candidate on every tier.
-        fetchPriority="high"
+        // Lowercase on purpose. React 18 does not recognise the camelCase
+        // `fetchPriority` prop: it warns and drops the attribute entirely, so
+        // the LCP priority hint this exists to set was never reaching the
+        // document. React 19 accepts both spellings; this one works on both.
+        fetchpriority="high"
       />
 
       {mountCanvas ? (

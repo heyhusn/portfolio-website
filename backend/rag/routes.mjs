@@ -12,7 +12,7 @@
  */
 import rateLimit from "express-rate-limit";
 import { answer, answerStream, retrieve, setIndexProvider, SUGGESTED_QUESTIONS } from "./pipeline.mjs";
-import { getIndex, indexStats, invalidateIndex, saveChunks, logQuery } from "./store.mjs";
+import { warmIndex, peekIndex, indexStats, invalidateIndex, saveChunks, logQuery } from "./store.mjs";
 import { llmInfo, LlmError } from "./llm.mjs";
 import buildCorpus from "./corpus.mjs";
 
@@ -59,7 +59,7 @@ function sendError(res, err, headersSent = false) {
 export function registerRagRoutes(app, authenticateToken) {
   // Under Express the index is the SQLite-backed one. The serverless build
   // injects a different provider over the same pipeline.
-  setIndexProvider(getIndex);
+  setIndexProvider(warmIndex);
 
   // Self-heal on boot. Requiring `npm run ingest` before `npm start` meant a
   // forgotten step showed visitors an "Assistant offline" panel with nothing
@@ -67,44 +67,53 @@ export function registerRagRoutes(app, authenticateToken) {
   // command. If the chunk table is empty, build it here. Ingestion is a few
   // hundred milliseconds over local files, and it only ever runs when there
   // is nothing to serve.
-  try {
-    if (!getIndex()) {
-      console.log("[rag] chunk table is empty — building the knowledge base…");
-      const { docs, chunks } = buildCorpus();
-      if (chunks.length) {
-        saveChunks(chunks);
-        invalidateIndex();
-        console.log(`[rag] indexed ${chunks.length} chunks from ${docs.length} documents.`);
-      } else {
-        console.warn("[rag] corpus came back empty — check backend/rag/sources/.");
+  // Self-heal on boot. Requiring `npm run ingest` before `npm start` meant a
+  // forgotten step showed visitors an "Assistant offline" panel with nothing
+  // explaining why — the failure looked like a bug rather than a missing
+  // command. If the chunk table is empty, build it here.
+  (async () => {
+    try {
+      if (!(await warmIndex())) {
+        console.log("[rag] chunk table is empty — building the knowledge base…");
+        const { docs, chunks } = await buildCorpus();
+        if (chunks.length) {
+          await saveChunks(chunks);
+          invalidateIndex();
+          await warmIndex();
+          console.log(`[rag] indexed ${chunks.length} chunks from ${docs.length} documents.`);
+        } else {
+          console.warn("[rag] corpus came back empty — check backend/rag/sources/.");
+        }
       }
+      const loaded = peekIndex();
+      const llm = llmInfo();
+      console.log(
+        `[rag] assistant ${loaded && llm.configured ? "ready" : "NOT ready"} — ` +
+          `${loaded?.size || 0} chunks, model ${llm.model}` +
+          (llm.configured ? "" : ", LLM_API_KEY missing from backend/.env")
+      );
+    } catch (err) {
+      // A broken knowledge base must not stop the rest of the API booting.
+      console.error("[rag] could not build the index on boot:", err.message);
     }
-    const loaded = getIndex();
-    const llm = llmInfo();
-    console.log(
-      `[rag] assistant ${loaded && llm.configured ? "ready" : "NOT ready"} — ` +
-        `${loaded?.size || 0} chunks, model ${llm.model}` +
-        (llm.configured ? "" : ", LLM_API_KEY missing from backend/.env")
-    );
-  } catch (err) {
-    // A broken knowledge base must not stop the rest of the API booting.
-    console.error("[rag] could not build the index on boot:", err.message);
-  }
+  })();
 
-  app.get("/api/rag/meta", (req, res) => {
-    const loaded = getIndex();
-    const llm = llmInfo();
-    res.json({
-      ready: Boolean(loaded) && llm.configured,
-      indexed: loaded?.size || 0,
-      stats: indexStats(),
-      model: llm.model,
-      llmConfigured: llm.configured,
-      // Lets the front end say WHY it isn't ready instead of a generic
-      // "unavailable" that gives the visitor nothing to act on.
-      reason: !loaded ? "empty-index" : !llm.configured ? "no-api-key" : null,
-      suggestions: SUGGESTED_QUESTIONS,
-    });
+  app.get("/api/rag/meta", async (req, res, next) => {
+    try {
+      const loaded = await warmIndex();
+      const llm = llmInfo();
+      res.json({
+        ready: Boolean(loaded) && llm.configured,
+        indexed: loaded?.size || 0,
+        stats: await indexStats(),
+        model: llm.model,
+        llmConfigured: llm.configured,
+        // Lets the front end say WHY it isn't ready instead of a generic
+        // "unavailable" that gives the visitor nothing to act on.
+        reason: !loaded ? "empty-index" : !llm.configured ? "no-api-key" : null,
+        suggestions: SUGGESTED_QUESTIONS,
+      });
+    } catch (err) { next(err); }
   });
 
   app.post("/api/rag/ask", askLimiter, async (req, res) => {
@@ -112,7 +121,7 @@ export function registerRagRoutes(app, authenticateToken) {
     if (!parsed) return;
     try {
       const result = await answer(parsed.question, parsed.history);
-      logQuery({ question: parsed.question, ...result });
+      await logQuery({ question: parsed.question, ...result });
       res.json(result);
     } catch (err) {
       sendError(res, err);
@@ -146,7 +155,7 @@ export function registerRagRoutes(app, authenticateToken) {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
       if (!closed) {
-        logQuery({
+        await logQuery({
           question: parsed.question,
           answer: full,
           sources,
@@ -162,10 +171,11 @@ export function registerRagRoutes(app, authenticateToken) {
 
   // Diagnostics: what would retrieval return, with no LLM call and no cost.
   // Admin-only because it exposes raw chunk text.
-  app.post("/api/rag/retrieve", authenticateToken, (req, res) => {
+  app.post("/api/rag/retrieve", authenticateToken, async (req, res, next) => {
     const parsed = validate(req, res);
     if (!parsed) return;
-    const { hits, indexed } = retrieve(parsed.question);
+    try {
+    const { hits, indexed } = await retrieve(parsed.question);
     res.json({
       indexed,
       hits: hits.map((h) => ({
@@ -177,17 +187,19 @@ export function registerRagRoutes(app, authenticateToken) {
         preview: h.chunk.text.slice(0, 300),
       })),
     });
+    } catch (err) { next(err); }
   });
 
-  app.post("/api/rag/reindex", authenticateToken, (req, res) => {
+  app.post("/api/rag/reindex", authenticateToken, async (req, res) => {
     try {
-      const { docs, chunks } = buildCorpus();
+      const { docs, chunks } = await buildCorpus();
       if (!chunks.length) {
         return res.status(400).json({ error: "Corpus came back empty — nothing was replaced." });
       }
-      saveChunks(chunks);
+      await saveChunks(chunks);
       invalidateIndex();
-      res.json({ success: true, documents: docs.length, chunks: chunks.length, stats: indexStats() });
+      await warmIndex();
+      res.json({ success: true, documents: docs.length, chunks: chunks.length, stats: await indexStats() });
     } catch (err) {
       console.error("[rag] reindex failed:", err);
       res.status(500).json({ error: "Reindex failed: " + err.message });

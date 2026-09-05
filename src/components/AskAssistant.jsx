@@ -5,6 +5,7 @@ import SectionHead from "./SectionHead.jsx";
 import { ArrowUpRight } from "./Icons.jsx";
 import { getRagMeta, askRagStream } from "../lib/api.js";
 import { useStore } from "../store.js";
+import { SUGGESTED_QUESTIONS } from "../data/suggested-questions.js";
 
 const MAX_CHARS = 500;
 
@@ -133,7 +134,13 @@ export default function AskAssistant({ id = "assistant" }) {
     }
   };
 
-  const suggestions = meta?.suggestions || [];
+  // Rendered from first paint, not from the meta response. The server returns
+  // this same list (it is re-exported by backend/rag/pipeline.mjs from the
+  // same module), so when the response lands the chips are already there and
+  // nothing moves. Waiting for the response meant the assistant panel grew by
+  // a chip row a few hundred milliseconds in, pushing every section below it
+  // down the page — on a narrow screen that was over 300px of shift.
+  const suggestions = meta?.suggestions || SUGGESTED_QUESTIONS;
   const started = turns.length > 0;
 
   return (
@@ -160,6 +167,12 @@ export default function AskAssistant({ id = "assistant" }) {
               ) : null}
             </div>
 
+            {/* One box for all three pre-conversation states. Which one shows
+                is only known after /api/rag/meta answers, a moment after first
+                paint, and the offline message is shorter than the input +
+                suggestions — so without a floor here, resolving the status
+                nudges everything below the panel up the page. */}
+            <div className="ask__body">
             {status === "offline" ? (
               <div className="ask__offline">
                 <p>{OFFLINE_COPY[reason] || OFFLINE_COPY.unreachable}</p>
@@ -237,7 +250,14 @@ export default function AskAssistant({ id = "assistant" }) {
                   <ul className="ask__suggestions">
                     {suggestions.map((s) => (
                       <li key={s}>
-                        <button type="button" onClick={() => ask(s)} disabled={busy}>
+                        <button
+                          type="button"
+                          onClick={() => ask(s)}
+                          // Present but inert until the assistant reports
+                          // ready — the chips are here to hold their space,
+                          // not to accept a click the backend can't serve yet.
+                          disabled={busy || status !== "ready"}
+                        >
                           {s}
                         </button>
                       </li>
@@ -279,6 +299,7 @@ export default function AskAssistant({ id = "assistant" }) {
                 </p>
               </>
             )}
+            </div>
           </div>
         </Reveal>
       </div>

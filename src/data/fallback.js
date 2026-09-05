@@ -36,8 +36,30 @@ import {
   github,
   recommendations,
 } from "./skills.js";
+import { snapshot } from "./snapshot.generated.js";
+
+/**
+ * Live content captured at build time, when there was a database to capture
+ * it from (see snapshot.generated.js).
+ *
+ * This is what closes the "flash of inaccurate content" gap. First paint has
+ * always been instant — that was the point of bundling content — but it was
+ * instant with whatever was hand-written in src/data/, and fetchData() then
+ * replaced it with the database's version. Where the two differed, the page
+ * visibly re-laid out: a different job title, one more project card, an
+ * edited service list. With a snapshot, first paint and the API response are
+ * byte-identical for any deploy where nothing has been edited since, so
+ * there is nothing to flash and nothing to shift. An edit made after the
+ * deploy still arrives the same way it always did — it is just one changed
+ * block instead of the entire page.
+ *
+ * Per key, not all-or-nothing: a snapshot taken from a database that has no
+ * `posts` row still gets the bundled posts.
+ */
+const live = snapshot || {};
 
 export function fallbackProfile() {
+  if (live.profile) return live.profile;
   const { about, ...rest } = staticProfile;
   return {
     ...rest,
@@ -48,6 +70,7 @@ export function fallbackProfile() {
 }
 
 export function fallbackProjects() {
+  if (live.projects?.length) return live.projects;
   return staticProjects.map((p) => ({
     highlights: [],
     stack: [],
@@ -58,6 +81,7 @@ export function fallbackProjects() {
 }
 
 export function fallbackPosts() {
+  if (live.posts?.length) return live.posts;
   // These six are explicitly scaffolding (see the note at the top of
   // posts.js) — mark them draft so they never show to a real visitor if
   // the site ever falls back to this bundled copy in production.
@@ -65,6 +89,15 @@ export function fallbackPosts() {
 }
 
 export function fallbackSiteContent() {
+  // Merged, not replaced, for the same reason mergeSiteContent in store.js
+  // merges: a content block added in a later release is absent from a
+  // snapshot taken against an older database, and taking the snapshot
+  // wholesale would delete it from the page.
+  const bundled = bundledSiteContent();
+  return live.siteContent ? { ...bundled, ...live.siteContent } : bundled;
+}
+
+function bundledSiteContent() {
   return {
     services,
     tickerWords,
@@ -81,6 +114,16 @@ export function fallbackSiteContent() {
     github,
     recommendations,
   };
+}
+
+/**
+ * The saved section layout as of the build, or null if there was no database
+ * to read one from. store.js runs it through the same mergeSections() the API
+ * response goes through, so a snapshot can never drop a section the code
+ * knows about but the database has not heard of.
+ */
+export function snapshotSections() {
+  return live.sections?.length ? live.sections : null;
 }
 
 export const DEFAULT_SECTIONS = [

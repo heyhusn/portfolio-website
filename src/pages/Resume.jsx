@@ -7,6 +7,7 @@ import RecommendationsSection from "../components/RecommendationsSection.jsx";
 import ContactSection from "../components/ContactSection.jsx";
 import { Download, Share, ArrowUpRight } from "../components/Icons.jsx";
 import { useStore } from "../store.js";
+import { useDocumentMeta } from "../lib/meta.js";
 
 const CV_PATH = "/assets/cv/husnain-aslam-cv.pdf";
 const CV_FILENAME = "Husnain-Aslam-Resume.pdf";
@@ -23,6 +24,11 @@ const CV_FILENAME = "Husnain-Aslam-Resume.pdf";
  */
 export default function Resume() {
   const { profile } = useStore();
+  useDocumentMeta({
+    title: `Resume — ${profile?.name || "Husnain Aslam"}`,
+    description: `${profile?.role || ""} in ${profile?.location || "Lahore"}.`,
+  });
+
   const [shareState, setShareState] = useState("idle");
 
   const handleShare = async () => {

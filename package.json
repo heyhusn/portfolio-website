@@ -3,23 +3,31 @@
   "private": true,
   "version": "1.2.0",
   "type": "module",
-  "description": "Portfolio of Husnain Aslam \u2014 dark/lime design system, React + Vite, SRS v1.2 compliant WebGL avatar.",
+  "description": "Portfolio of Husnain Aslam — dark/lime design system, React + Vite, SRS v1.2 compliant WebGL avatar.",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite",
     "dev:api": "node backend/server.mjs",
-    "build": "node scripts/check-model-budget.mjs && vite build",
+    "build": "node scripts/check-model-budget.mjs && node scripts/snapshot-content.mjs && vite build && node scripts/prerender-meta.mjs",
     "build:nocheck": "vite build",
     "preview": "vite preview",
     "check:model": "node scripts/check-model-budget.mjs",
-    "postinstall": "node scripts/copy-decoders.mjs"
+    "postinstall": "node scripts/copy-decoders.mjs",
+    "prerender": "node scripts/prerender-meta.mjs",
+    "snapshot": "node scripts/snapshot-content.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run test && npm run build"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.10",
     "axios": "^1.20.0",
+    "bcryptjs": "^3.0.2",
     "framer-motion": "^13.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "postgres": "^3.4.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
@@ -27,7 +35,11 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "^4.3.2",
-    "vite": "^5.4.8"
+    "jsdom": "^25.0.1",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.9"
   }
 }

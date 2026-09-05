@@ -16,7 +16,15 @@ import { PRIORITY } from "../motion/kernel.js";
  */
 export default function TvStaticBackground() {
   const canvasRef = useRef(null);
-  const { animate } = useMotion();
+  const { animate, tier } = useMotion();
+
+  // A full-viewport noise buffer, rewritten ~35 times a second, is the most
+  // expensive thing on the page. It was gated on `animate` alone, so a LITE
+  // device — small, slow, on a metered connection, or simply unknown — paid
+  // for it in full. LITE gets the single frozen grain frame instead, which is
+  // what the reduced-motion path already renders and is visually almost
+  // identical behind the vignette.
+  const live = animate && tier !== "LITE";
 
   // Internal state for noise generation and tracking glitches
   const state = useRef({
@@ -118,7 +126,7 @@ export default function TvStaticBackground() {
   // Connect to Motion Kernel ticker
   useTicker(
     (frame) => {
-      if (frame.terminal || !animate) {
+      if (frame.terminal || !live) {
         drawNoiseFrame(true);
         return;
       }
@@ -130,8 +138,20 @@ export default function TvStaticBackground() {
         drawNoiseFrame(false);
       }
     },
-    { active: animate, priority: PRIORITY.READ }
+    // RENDER, not READ: this callback writes pixels and reads no layout.
+    // READ priority is reserved for subscribers that measure, so they run
+    // before anything in the frame has written.
+    { active: live, priority: PRIORITY.RENDER }
   );
+
+  // LITE and reduced-motion never subscribe, so paint the resting frame once
+  // rather than leaving a transparent canvas where the grain should be.
+  useEffect(() => {
+    if (live) return;
+    const id = requestAnimationFrame(() => drawNoiseFrame(true));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live]);
 
   return (
     <div className="tv-static-container" aria-hidden="true">

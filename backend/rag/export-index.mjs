@@ -23,21 +23,21 @@ import buildCorpus from "./corpus.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(__dirname, "../../api/_rag-index.js");
 
-let chunks = loadChunks();
+let chunks = await loadChunks();
 
 // Build first if there is nothing to export. Failing with "run ingest first"
 // made this a two-command ritual that is easy to half-remember, and there is
 // no case where someone wants an export of an empty index.
 if (!chunks.length) {
   console.log("Chunk table is empty — building the knowledge base first…");
-  const built = buildCorpus();
+  const built = await buildCorpus();
   if (!built.chunks.length) {
     console.error("Corpus came back empty. Check backend/rag/sources/ and that the DB is seeded.");
     process.exit(1);
   }
-  saveChunks(built.chunks);
+  await saveChunks(built.chunks);
   invalidateIndex();
-  chunks = loadChunks();
+  chunks = await loadChunks();
   console.log(`Indexed ${chunks.length} chunks from ${built.docs.length} documents.`);
 }
 

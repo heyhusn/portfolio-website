@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
+import RootErrorBoundary from "./components/RootErrorBoundary.jsx";
 import { MotionProvider } from "./motion/MotionProvider.jsx";
 import "./styles/style.css";
 import "./styles/app.css";
@@ -39,10 +40,12 @@ document.querySelectorAll("noscript").forEach((n) => n.remove());
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter>
-      <MotionProvider>
-        <App />
-      </MotionProvider>
-    </BrowserRouter>
+    <RootErrorBoundary>
+      <BrowserRouter>
+        <MotionProvider>
+          <App />
+        </MotionProvider>
+      </BrowserRouter>
+    </RootErrorBoundary>
   </StrictMode>
 );

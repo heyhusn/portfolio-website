@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getSections, updateSections, logout } from '../../lib/api.js';
+import { getSections, updateSections, logout, SESSION_EXPIRED_EVENT } from '../../lib/api.js';
 import { useStore } from '../../store.js';
 
 import ProfileForm from './ProfileForm.jsx';
@@ -18,8 +18,17 @@ export default function AdminDashboard() {
   const [sectionsError, setSectionsError] = useState(false);
   const [activeTab, setActiveTab] = useState('sections');
 
-  const { fetchData } = useStore();
+  const { fetchData, apiReachable, apiError } = useStore();
   const navigate = useNavigate();
+
+  // The API layer clears the token and fires this when the server stops
+  // accepting it. Bouncing to /login here means an expired session looks like
+  // an expired session, rather than every button quietly failing.
+  useEffect(() => {
+    const onExpired = () => navigate('/login');
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, [navigate]);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -127,6 +136,31 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', color: 'var(--text)' }}>
+      {/* The console warning is for whoever opens devtools. This is for the
+          person about to spend ten minutes editing content that cannot save.
+          A silent fallback is right for a visitor and wrong for an admin. */}
+      {apiReachable === false && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: '1.5rem', padding: '1rem 1.25rem',
+            border: '1px solid #ff9db4', borderLeft: '3px solid #ff9db4',
+            borderRadius: '6px', background: 'rgba(255,157,180,0.08)',
+          }}
+        >
+          <strong style={{ color: '#ff9db4' }}>The content API is not responding.</strong>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-dim)' }}>
+            Everything below is the content bundled at build time, not what is stored.
+            Edits will fail to save until this is fixed.
+          </p>
+          {apiError && (
+            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontFamily: 'ui-monospace, monospace', color: 'var(--text-faint)' }}>
+              {apiError}
+            </p>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 className="h2">Admin Dashboard</h1>
         <button className="btn" onClick={() => { logout(); navigate('/login'); }}>Logout</button>

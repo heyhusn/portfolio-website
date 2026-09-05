@@ -201,18 +201,28 @@ overrides the OS preference in either direction and persists in `localStorage`.
 The model is in and shipping. The Hi3D export was 61.1 MB — 2,000,000 triangles
 and a 4096² JPEG — and now transfers at **0.85 MB**, 28% of the SRS budget, via
 mesh simplification to 40k triangles, a 2048² KTX2/ETC1S texture and Draco
-geometry compression. `public/models/README.md` has the exact pipeline and how to
-re-run it if you re-export.
+geometry compression. [`docs/avatar-model.md`](avatar-model.md) has the exact pipeline and how to
+re-run it if you re-export. (It used to live in `public/models/`, where it was
+deployed as a public asset and served with `Content-Type: model/gltf-binary` by
+the cache rule meant for the model.)
 
 To replace it: drop a new `avatar.glb` in `public/models/` and run `npm run build`.
 
+**Where it renders.** `SignatureScene` is the figure inside `FlowingPortrait`,
+which is the hero portrait on the home page — so the gates below apply to the
+element visitors actually see, not to a component sitting beside the app. This
+was not true until Sept 2026: the scene existed, was fully written, and was
+imported by nothing, so the site shipped the poster and no build ever emitted a
+`wgl` chunk. CI now asserts the chunk exists and stays out of the entry graph,
+because that failure was completely silent.
+
 **The poster is the element, not the fallback.** `SignatureScene` always renders
-`avatar-poster.webp` — a 32 KB transparent render of the same model, captured from
-the canvas framebuffer at the hero's exact camera and lighting, so the static and
-live states are indistinguishable — at the size the layout expects; the canvas is an absolutely
-positioned layer that fades in on top of it only when every gate opens. There is
-no state in which the box changes size, which makes "no layout shift" structural
-rather than a promise.
+`avatar-poster.webp` (32 KB) at the size the layout expects; the canvas is an
+absolutely positioned layer that fades in on top of it only when every gate
+opens. There is no state in which the box changes size, which makes "no layout
+shift" structural rather than a promise. Re-render the poster from the same
+camera and lighting after any change to the model or to `AvatarCanvas.jsx`, or
+the two states drift apart.
 
 The gates, in order:
 
@@ -233,8 +243,9 @@ Any gate that stays shut leaves the poster exactly where it was, silently.
 | FR-AVT-05 | The gate parses the GLB's JSON chunk and rejects uncompressed geometry or non-KTX2 textures |
 | FR-AVT-06 | Decoders copied out of `three` into `/public/decoders`; the gate greps `src/wgl` for CDN origins and fails the build if one appears |
 | FR-AVT-07 | `frameloop="never"`; the kernel calls `advance()`. The mixer steps on the same delta |
-| FR-AVT-08 | `webglcontextlost` is prevented, the poster takes over, and a generation counter remounts the scene on restore — with a timer fallback for drivers that never fire `contextrestored` |
+| FR-AVT-08 | `webglcontextlost` is prevented, the poster takes over, and a generation counter remounts the scene on restore — with a timer fallback for drivers that never fire `contextrestored`, and a hard cap of two attempts so a device that keeps losing its context settles on the poster instead of looping |
 | FR-AVT-09 | Preflight fetch with `AbortController` and a 5s timeout; an error boundary catches render failures; `main.jsx` suppresses asset-pipeline rejections only |
+| Disposal | `AvatarCanvas` clears drei's `useGLTF` cache entry and disposes geometries, materials and textures on unmount — the loader is handed a fresh `blob:` URL per generation, so nothing would ever evict those entries on its own |
 | FR-AVT-10 | The gate renames the file to `avatar.<sha256-10>.glb` and writes the manifest |
 | FR-AVT-11 | The model conveys nothing the surrounding text does not; the poster carries the accessible name |
 
@@ -316,11 +327,34 @@ server-side instead, set `VITE_CONTACT_ENDPOINT` to a URL that accepts
 
 ## Verification
 
-Both builds were rendered and compared programmatically. Layout geometry and all
-design tokens match. The avatar module was exercised end to end against a test
-model — the FULL path, the reduced-motion path, a failed fetch, and a forced
-context loss and recovery — with no console errors and no unhandled rejections in
-any of them. The compression gate was confirmed to reject an uncompressed export.
+`npm test` — 51 tests, six files, run on every push by `.github/workflows/ci.yml`
+alongside the production build.
+
+An earlier version of this section claimed the two builds had been "rendered and
+compared programmatically" and the avatar module "exercised end to end". Neither
+was true: there was no test file in the repository at all. The claims are
+replaced here by the suite that now exists, which is narrower and real.
+
+| File | What it pins down |
+| --- | --- |
+| `tests/motion-kernel.test.js` | The kernel does not start without subscribers, stops when the last leaves, orders by priority, clamps `dt`, delivers exactly one terminal frame when motion goes off, and survives a subscriber that throws |
+| `tests/capability-tier.test.js` | Extracts the real pre-paint script out of `index.html` and runs it against synthetic browsers. Includes the Firefox/Safari case directly: those report no `navigator.deviceMemory`, and a `mem >= 8` gate pinned every one of their visitors to MID — where WebGL may not mount |
+| `tests/signature-scene.test.jsx` | The poster is in the document at a fixed intrinsic size in all five states; the WebGL chunk is not reached for below FULL, with motion off, with no model in the manifest, on a failed fetch, or on a 404 |
+| `tests/model-budget.test.js` | The gate's GLB parser and compression audit against synthesised exports with known defects, plus the model actually committed — budget, Draco, KTX2, content-hashed filename, manifest agreement |
+| `tests/rag-pipeline.test.js` | Citation numbering matches what the reader is shown, an unanswerable question retrieves nothing, "who is he" still answers, and a forged `system` turn in client-supplied history cannot become a second system message |
+| `tests/accessibility.test.jsx` | Skip link is the first focusable element and points at a real `main`; `main` is focusable but out of the tab order; the route-announcement live region exists before it has anything to say |
+
+CI additionally asserts what no test can see from inside the app: that
+`dist/index.html` does not preload the `wgl` chunk and that three.js has not
+become statically reachable from the entry. That regression makes every visitor
+download ~950 KB of renderer regardless of tier, and it shows up as nothing but
+a slower site.
+
+**Not covered.** No browser-level rendering test, so a real context loss, an
+actual GPU decode of the KTX2 texture, and the visual match between poster and
+live scene are all still checked by hand. No Postgres integration test in CI —
+the database work was verified against a real Postgres 16 locally (see the
+Supabase section) but CI runs no database.
 
 ## Resume, skills, credentials and GitHub (Aug 2026)
 
@@ -714,3 +748,123 @@ One consequence worth knowing when testing: a moving element cannot be clicked
 by an automated driver, which refuses to act on an unstable target and so never
 hovers, and therefore never triggers the pause. Hover explicitly first, then
 click. A real visitor does this without thinking.
+
+---
+
+## Layout stability and off-screen work (Aug 2026)
+
+Four items came in from a UX review. Two were real, two were not; all four were
+measured before anything was changed, because a fix aimed at the wrong cause is
+worse than no fix — it looks like diligence and leaves the bug in place.
+
+### 1. "Flash of inaccurate content" — real
+
+The store renders bundled content first and the API's content second (see
+*Editing content*). That is deliberate: it is what makes first paint instant and
+what keeps the site up when the API is unreachable. But the bundled copy was the
+hand-written `src/data/` content and the live copy came from the database, so
+where the two disagreed the page rewrote itself a few hundred milliseconds in.
+
+Three separate causes, three separate fixes:
+
+**a. The bundled content was not the live content.**
+`scripts/snapshot-content.mjs` runs before `vite build`, reads the repository
+directly, and writes the result into `src/data/snapshot.generated.js`.
+`fallback.js` prefers it per key. The endpoints it stands in for
+(`api/profile.js`, `projects.js`, `posts.js`, `site.js`, `sections.js`) all
+return `await db.<method>()` verbatim, so the payloads are byte-identical — if
+one of them ever starts reshaping its result, the snapshot has to reshape it the
+same way, or this quietly stops being true.
+
+It can never fail a build: no `DATABASE_URL`, an unreachable database, or a
+database with no profile row all leave the snapshot `null` and the build
+proceeds on bundled content. Drafts are stripped — the only deliberate
+difference from the API response, and the reason the store may still take one
+(invisible) update of the posts list.
+
+`snapshot.generated.js` is committed holding `null`. It is imported statically,
+so ignoring it would break `npm run dev` on a fresh clone. Cost: **+1.6 kB
+gzipped**, because the hand-written content stays in the bundle as the fallback
+and the two compress well together.
+
+**b. An identical payload still re-rendered.** Zustand compares by reference, so
+a freshly parsed but identical object re-rendered every subscriber. With the
+snapshot in place that is now the *normal* case, so `keepIfUnchanged` in
+`store.js` keeps the existing object when a stringify comparison matches. Key
+order is stable because both sides come out of the same serializer; a false
+negative costs one render, which is the old behaviour.
+
+**c. Two things genuinely cannot be known at build time**, and both were bigger
+than the content problem:
+
+- The **GitHub calendar** is a live third-party call. Its arrival grew the
+  section by **318px**. It now renders a full-size skeleton — 53 empty weeks and
+  four blank stat tiles — so the response changes colours and numbers, not
+  geometry. The "Loading…" line moved into a visually-hidden `role="status"`,
+  because a visible line is itself a height the loaded state does not have.
+- The **assistant's readiness** comes from `/api/rag/meta`. Its arrival moved
+  the panel by 24px: the starter chips did not exist until the response landed,
+  and the model chip made the status bar 4px taller. The chips now render from
+  `src/data/suggested-questions.js` — re-exported by `backend/rag/pipeline.mjs`
+  so the browser and the server return the same six strings, *one list, not two
+  that drift* — and `.ask__bar` reserves the chip's height.
+
+The offline state is genuinely shorter than a working panel, and no floor
+reconciles a two-sentence message with an input row and six chips without
+leaving a cavern. `.ask__body` has a `min-height` that bounds that shrink rather
+than pretending to eliminate it.
+
+Result, measured by holding the API for 1.2s and diffing the DOM at first paint
+against the settled state: **no section changes height**. The only text that
+changes is placeholders filling in inside boxes that were already the right
+size.
+
+### 2. Text contrast — real, and worse than reported
+
+The review said `--text-faint` was about 3.3:1. Computed properly it was
+**4.06:1** in dark mode — still an AA failure for body text, but not that
+number — and **3.07:1** in light mode, which the review had not looked at and
+which was the worse of the two. Both were raised (dark `.42 → .48`, light
+`.46 → .62`) and now measure **4.91:1** and **5.08:1**.
+
+Worth doing the arithmetic rather than trusting the estimate: had the fix been
+sized to 3.3:1, light mode would still have been failing afterwards.
+
+### 3. "The WebGL tax on scrolling" — did not apply as described
+
+The review asked for the WebGL render loop to be paused off-screen. There is no
+WebGL render loop to pause: `FlowingPortrait` is a DOM `<img>` with
+`style.transform` (zero canvas or three.js references), there is no `.glb` in
+`public/models/`, so `AvatarCanvas` never mounts, and the Motion Kernel already
+stops entirely on `visibilitychange`.
+
+The *idea* under the claim was sound, though, for the animations that do exist.
+`useInViewport` gates kernel subscribers on visibility, and `Marquee` and
+`FlowingPortrait` use it. Off-screen style writes went from ~60/s to **0**;
+`rootMargin: 20%` restarts them before they are visible, so nothing is ever seen
+catching up. The hook starts `true` so above-the-fold elements animate on the
+first frame instead of waiting for the observer's first callback.
+
+### 4. Missing form submission feedback — already implemented, with one real gap
+
+`ContactForm` already had `status === "sending"`, a disabled button and a
+"Sending…" label. What it did not have was a guard against submission that does
+not go through the button at all: **Enter in any text field submits a form, and
+a disabled submit button does not prevent it**. One line at the top of
+`onSubmit` closes that, plus `aria-busy` on the form. Verified by clicking and
+then pressing Enter: one network POST.
+
+### Verifying all of it
+
+`verify-ux.mjs` (not committed — a session tool) drives Playwright against a
+production build served the way Vercel serves it. Two things it has to do that
+are easy to get wrong:
+
+- **Force the FULL tier.** Headless Chromium reports few cores, and
+  `capability.js` rejects SwiftShader by name, so the marquees fall back to the
+  CSS transport and the kernel gate under test never runs. The context script
+  overrides `deviceMemory`/`hardwareConcurrency` and hides
+  `WEBGL_debug_renderer_info`.
+- **Separate first paint from the settled state.** Route interception holds the
+  API for 1.2s; without that the two snapshots are taken after the same event
+  and every comparison passes trivially.

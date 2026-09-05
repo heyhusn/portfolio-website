@@ -12,7 +12,9 @@
     "ingest": "node rag/ingest.mjs",
     "refresh:github": "node rag/refresh-github.mjs",
     "export:index": "node rag/export-index.mjs",
-    "setup": "node migrate-resume-blocks.mjs && node rag/ingest.mjs && node rag/export-index.mjs"
+    "setup": "node migrate-resume-blocks.mjs && node rag/ingest.mjs && node rag/export-index.mjs",
+    "db:push": "node data/push-schema.mjs",
+    "db:migrate": "node data/migrate-to-postgres.mjs"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "postgres": "^3.4.5"
   }
 }

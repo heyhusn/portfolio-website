@@ -16,7 +16,7 @@
  */
 import path from "path";
 import { fileURLToPath } from "url";
-import db from "./db.mjs";
+import { repo, usingPostgres } from "./data/index.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skills = await import("file://" + path.resolve(__dirname, "../src/data/skills.js"));
@@ -50,80 +50,63 @@ const NEW_SECTIONS = [
  * services slot as you scroll, so a section sitting between those two gets
  * the portrait gliding over it — directly AFTER services is the highest slot
  * clear of that path. Anchoring by lookup rather than by "position 3" means
- * this still lands correctly if you have already reordered the home page,
- * or if the numbering has gaps. Drag it elsewhere afterwards if you like.
+ * this still lands correctly if you have already reordered the home page.
  */
 const ASSISTANT = { id: "assistant", title: "Ask About My Work", is_visible: 1, after: "services" };
 
-const hasKey = db.prepare("SELECT 1 FROM site_content WHERE key = ?");
-const insertKey = db.prepare("INSERT INTO site_content (key, value) VALUES (?, ?)");
+const db = await repo();
+console.log(`Migrating ${usingPostgres() ? "Postgres (DATABASE_URL)" : "SQLite (backend/portfolio.db)"}…\n`);
 
-for (const [key, value] of Object.entries(NEW_KEYS)) {
-  if (hasKey.get(key)) {
-    console.log(`site_content.${key} already present — left alone.`);
-  } else {
-    insertKey.run(key, JSON.stringify(value));
-    console.log(`site_content.${key} added.`);
-  }
+if (usingPostgres()) {
+  const { applySchema } = await import("./data/postgres.mjs");
+  await applySchema();
 }
 
-const removedStack = db.prepare("DELETE FROM site_content WHERE key = 'stack'").run().changes;
-if (removedStack) console.log("site_content.stack removed (nothing renders it now).");
+// ---- content keys: add only what is missing ----------------------------
+const existing = await db.getSiteContent();
+const toAdd = {};
+for (const [key, value] of Object.entries(NEW_KEYS)) {
+  if (key in existing) console.log(`site_content.${key} already present — left alone.`);
+  else { toAdd[key] = value; console.log(`site_content.${key} added.`); }
+}
+if (Object.keys(toAdd).length) await db.saveSiteContent(toAdd);
 
-const hasSection = db.prepare("SELECT 1 FROM sections WHERE id = ?");
-const insertSection = db.prepare(
-  "INSERT INTO sections (id, title, is_visible, ordering, animation_type, font_family, type, content) " +
-    "VALUES (?, ?, ?, ?, 'default', 'default', 'predefined', NULL)"
-);
+if ("stack" in existing) {
+  await db.deleteSiteContent("stack");
+  console.log("site_content.stack removed (nothing renders it now).");
+}
 
-// Append after the current maximum so the new rows never collide with an
-// ordering you have already arranged by hand in the Sections Layout tab.
-let nextOrder =
-  (db.prepare("SELECT MAX(ordering) AS m FROM sections").get()?.m ?? -1) + 1;
+// ---- sections: append the new ones, then splice the assistant in -------
+let sections = await db.listSections();
+const has = (id) => sections.some((s) => s.id === id);
 
 for (const s of NEW_SECTIONS) {
-  if (hasSection.get(s.id)) {
-    console.log(`section "${s.id}" already present — left alone.`);
-  } else {
-    insertSection.run(s.id, s.title, s.is_visible, nextOrder++);
-    console.log(`section "${s.id}" added (visible: ${!!s.is_visible}).`);
-  }
+  if (has(s.id)) { console.log(`section "${s.id}" already present — left alone.`); continue; }
+  sections.push({ ...s, is_visible: !!s.is_visible, animation_type: "default", font_family: "default", type: "predefined", content: null });
+  console.log(`section "${s.id}" added (visible: ${!!s.is_visible}).`);
 }
 
-if (hasSection.get(ASSISTANT.id)) {
+if (has(ASSISTANT.id)) {
   console.log(`section "${ASSISTANT.id}" already present — left alone.`);
 } else {
-  const anchor = db
-    .prepare("SELECT ordering FROM sections WHERE id = ?")
-    .get(ASSISTANT.after);
-
-  if (!anchor) {
-    // No services section to anchor to — append rather than guess at a number.
-    insertSection.run(ASSISTANT.id, ASSISTANT.title, ASSISTANT.is_visible, nextOrder++);
-    console.log(
-      `section "${ASSISTANT.id}" appended (no "${ASSISTANT.after}" section to anchor to). ` +
-        `Drag it up the Sections Layout tab so visitors see it.`
-    );
+  const row = { ...ASSISTANT, is_visible: true, animation_type: "default", font_family: "default", type: "predefined", content: null };
+  const at = sections.findIndex((s) => s.id === ASSISTANT.after);
+  if (at >= 0) {
+    sections.splice(at + 1, 0, row);
+    console.log(`section "${ASSISTANT.id}" added directly after "${ASSISTANT.after}".`);
   } else {
-    const target = anchor.ordering + 1;
-    db.transaction(() => {
-      db.prepare("UPDATE sections SET ordering = ordering + 1 WHERE ordering >= ?").run(target);
-      insertSection.run(ASSISTANT.id, ASSISTANT.title, ASSISTANT.is_visible, target);
-    })();
-    console.log(`section "${ASSISTANT.id}" added directly after "${ASSISTANT.after}" (position ${target}).`);
+    sections.push(row);
+    console.log(`section "${ASSISTANT.id}" appended (no "${ASSISTANT.after}" section to anchor to).`);
   }
 }
 
-// Re-close any gaps the shifts (or an earlier hand edit) left behind, so the
-// admin panel's drag-and-drop starts from a clean 0..n-1 sequence.
-db.transaction(() => {
-  const rows = db.prepare("SELECT id FROM sections ORDER BY ordering ASC, rowid ASC").all();
-  const set = db.prepare("UPDATE sections SET ordering = ? WHERE id = ?");
-  rows.forEach((r, i) => set.run(i, r.id));
-})();
+// replaceSections renumbers ordering from the array position, which also
+// closes any gaps an earlier hand edit left behind.
+await db.replaceSections(sections);
 
 console.log(
   "\nDone. Nothing else was touched — your profile, projects, posts and existing " +
     "site text are exactly as they were.\nOpen /admin → Sections Layout to drag the new " +
     "sections into place."
 );
+await db.close();

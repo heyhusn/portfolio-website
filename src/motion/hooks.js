@@ -81,6 +81,41 @@ export function useInViewOnce(options = { threshold: 0.12, rootMargin: "0px 0px 
 }
 
 /**
+ * Continuous version of useInViewOnce: tracks visibility for the element's
+ * whole life instead of latching on the first entry.
+ *
+ * This exists to gate per-frame work. The Motion Kernel already stops the
+ * whole loop when the tab is hidden, but a subscriber whose element has
+ * scrolled out of the viewport is still stepped every frame on a tab that is
+ * very much visible — writing transforms nobody can see. `useTicker`'s
+ * `active` flag is the off switch; this hook is what decides when to flip it.
+ *
+ * The default rootMargin deliberately runs ahead of the viewport: work
+ * resumes a little before the element is on screen, so the first visible
+ * frame is already correct rather than a stale position from wherever the
+ * animation was frozen.
+ *
+ * Starts true, not false. An element that is above the fold must animate on
+ * the very first frame; waiting for the observer's first callback would cost
+ * it a frame or two of stillness on every page load.
+ */
+export function useInViewport(options = { rootMargin: "20% 0px" }) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const pool = getPool(options);
+    return pool.observe(el, (entry) => setInView(entry.isIntersecting));
+    // options is a stable literal per call site in this codebase
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return [ref, inView];
+}
+
+/**
  * Subscribe a callback to the one Motion Kernel ticker (ADR-02).
  * `active` lets a component hold its place in the subscriber list without
  * paying for frames it does not need — e.g. an off-screen parallax.

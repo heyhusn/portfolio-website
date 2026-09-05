@@ -2,14 +2,27 @@ import { useEffect, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import Home from "./pages/Home.jsx";
-import About from "./pages/About.jsx";
-import Projects from "./pages/Projects.jsx";
-import ProjectDetail from "./pages/ProjectDetail.jsx";
-import Blogs from "./pages/Blogs.jsx";
-import Resume from "./pages/Resume.jsx";
-import BlogPost from "./pages/BlogPost.jsx";
-import NotFound from "./pages/NotFound.jsx";
 import { useStore } from "./store.js";
+
+/* Route-level splitting for the public pages.
+ *
+ * Only Home stays in the entry chunk: it is the landing route for almost every
+ * visitor, and making it async would add a round trip in front of the LCP for
+ * no benefit. Everything else was being downloaded by every visitor to `/`
+ * before they had clicked anything — About, both Projects views, both Blogs
+ * views, the Resume page and its PDF viewer, and NotFound, plus the data
+ * modules only those pages read.
+ *
+ * The router preloads nothing on hover deliberately: these are small chunks on
+ * a fast host, and a hover preload spends bandwidth on a link that is mostly
+ * not clicked. */
+const About = lazy(() => import("./pages/About.jsx"));
+const Projects = lazy(() => import("./pages/Projects.jsx"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail.jsx"));
+const Blogs = lazy(() => import("./pages/Blogs.jsx"));
+const BlogPost = lazy(() => import("./pages/BlogPost.jsx"));
+const Resume = lazy(() => import("./pages/Resume.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 
 // The admin dashboard pulls in framer-motion and @hello-pangea/dnd, neither
 // of which a public visitor ever needs. Loaded eagerly they landed in the
@@ -26,6 +39,8 @@ function AdminFallback() {
     </div>
   );
 }
+
+
 
 export default function App() {
   const fetchData = useStore((s) => s.fetchData);
@@ -55,6 +70,9 @@ export default function App() {
           </Suspense>
         }
       />
+      {/* The Suspense boundary for these lives inside Layout, wrapped around
+          the Outlet — a boundary out here would take the nav, footer and
+          background down with the page while a route chunk loads. */}
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />

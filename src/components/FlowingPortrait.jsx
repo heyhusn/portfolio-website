@@ -1,18 +1,39 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useTicker } from "../motion/hooks.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTicker, useInViewport } from "../motion/hooks.js";
 import { useMotion } from "../motion/MotionProvider.jsx";
 import { PRIORITY } from "../motion/kernel.js";
 import SayHelloBadge from "./SayHelloBadge.jsx";
+import SignatureScene from "../wgl/SignatureScene.jsx";
 
 /**
  * FlowingPortrait
  *
- * Implements the signature single-image scroll animation from the Framer template (portfolio.mp4):
- * 1. At the top of the page, the user's portrait is centered in the Hero section with the SayHello badge.
- * 2. As the user scrolls down towards Services, the single portrait smoothly translates, scales,
- *    and docks into the right-hand sticky Services media slot.
- * 3. In the Services section, the portrait stays sticky alongside the accordion list.
- * 4. Eliminates the previous two disconnected duplicate images.
+ * The signature single-figure scroll animation: the portrait starts centred in
+ * the hero, glides across as the visitor scrolls, and docks into the sticky
+ * media slot beside the services accordion.
+ *
+ * The figure itself is a SignatureScene, so the WebGL avatar's gates
+ * (FR-AVT-01 … 11) apply to the element that actually renders on the page.
+ * The poster is still the thing that sizes the box; the canvas is a layer on
+ * top of it. That means this component's geometry maths is unchanged whether
+ * the model mounts or not.
+ *
+ * READ / WRITE SPLIT — why there are two ticker subscriptions
+ * ----------------------------------------------------------
+ * This used to call getBoundingClientRect() on two elements and then write six
+ * style properties, all inside one PRIORITY.RENDER callback. Reading layout
+ * after writing it in the same frame forces a synchronous reflow, and this is
+ * the hero animation, so it ran during the LCP window on every frame.
+ *
+ * The measurement cannot simply be cached: the services slot is
+ * `position: sticky`, so its page-space position genuinely changes as the page
+ * scrolls, and the portrait is supposed to follow it once docked.
+ *
+ * So the two halves are separated instead, which is exactly what the kernel's
+ * priority scheme is for. A PRIORITY.READ subscriber measures both slots at
+ * the top of the frame, before anything has written; a PRIORITY.RENDER
+ * subscriber writes from that snapshot. One forced layout per frame, at a
+ * point where the browser was going to lay out anyway.
  */
 export default function FlowingPortrait({ profile, heroSlotRef, servicesSlotRef }) {
   const portraitRef = useRef(null);
@@ -20,145 +41,189 @@ export default function FlowingPortrait({ profile, heroSlotRef, servicesSlotRef 
   const { animate } = useMotion();
   const [isMobile, setIsMobile] = useState(false);
 
+  // The portrait's flight path spans hero → services and nothing more: once
+  // it has docked, every subsequent frame recomputes the same three numbers
+  // and writes the same six style properties, for the rest of the page. This
+  // stops that. The 20% lead-in means it is already back in step by the time
+  // it is visible again — and the whole thing is a no-op on the first paint,
+  // since the hook starts visible.
+  const [viewportRef, inViewport] = useInViewport();
+
+  /** Snapshot written by the READ pass, consumed by the RENDER pass. */
+  const geom = useRef(null);
+  /** So the reset path writes once instead of on every frame. */
+  const parked = useRef(false);
+
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 820);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth <= 820);
     checkMobile();
     window.addEventListener("resize", checkMobile, { passive: true });
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const updatePosition = useCallback((scrollY) => {
-    const portrait = portraitRef.current;
+  /* ---------------- READ: measure, never write ---------------- */
+  const measure = useCallback(() => {
     const heroSlot = heroSlotRef.current;
     const servicesSlot = servicesSlotRef.current;
-    const badge = badgeRef.current;
-
-    if (!portrait || !heroSlot || !servicesSlot) return;
-
-    if (isMobile || !animate) {
-      portrait.style.transform = "";
-      portrait.style.position = "";
-      portrait.style.top = "";
-      portrait.style.left = "";
-      portrait.style.width = "";
-      portrait.style.height = "";
-      if (badge) {
-        badge.style.opacity = "1";
-        badge.style.transform = "none";
-      }
+    if (!heroSlot) {
+      geom.current = null;
       return;
     }
 
-    const heroRect = heroSlot.getBoundingClientRect();
-    const servicesRect = servicesSlot.getBoundingClientRect();
+    const hero = heroSlot.getBoundingClientRect();
+    const services = servicesSlot ? servicesSlot.getBoundingClientRect() : null;
+    // Page space, not viewport space. `left` needs scrollX for the same reason
+    // `top` needs scrollY — the portrait is positioned absolutely against the
+    // document, so mixing the two coordinate systems only happened to work
+    // while the page had no horizontal scroll.
+    const sx = window.scrollX || window.pageXOffset || 0;
+    const sy = window.scrollY || window.pageYOffset || 0;
 
-    // Absolute page offsets
-    const heroTop = heroRect.top + scrollY;
-    const heroLeft = heroRect.left;
-    const heroWidth = heroRect.width || 325;
-    const heroHeight = heroRect.height || 440;
+    geom.current = {
+      heroTop: hero.top + sy,
+      heroLeft: hero.left + sx,
+      heroW: hero.width || 325,
+      heroH: hero.height || 440,
+      servicesTop: services ? services.top + sy : hero.top + sy,
+      servicesLeft: services ? services.left + sx : hero.left + sx,
+      servicesW: services ? (services.width || 380) : (hero.width || 325),
+      servicesH: services ? (services.height || 475) : (hero.height || 440),
+      hasServices: Boolean(servicesSlot),
+    };
+  }, [heroSlotRef, servicesSlotRef]);
 
-    const servicesTop = servicesRect.top + scrollY;
-    const servicesLeft = servicesRect.left;
-    const servicesWidth = servicesRect.width || 380;
-    const servicesHeight = servicesRect.height || 475;
+  useTicker(measure, {
+    active: animate && !isMobile && inViewport,
+    priority: PRIORITY.READ,
+  });
 
-    // Transition scroll range
-    const startScroll = Math.max(0, heroTop - 120);
-    const endScroll = servicesTop - 120;
-    const scrollRange = Math.max(100, endScroll - startScroll);
+  /* ---------------- WRITE: no layout reads below this line ---------------- */
+  const park = useCallback(() => {
+    const portrait = portraitRef.current;
+    const badge = badgeRef.current;
+    if (!portrait || parked.current) return;
+    portrait.style.transform = "";
+    portrait.style.position = "";
+    portrait.style.top = "";
+    portrait.style.left = "";
+    portrait.style.width = "";
+    portrait.style.height = "";
+    if (badge) {
+      badge.style.opacity = "1";
+      badge.style.transform = "none";
+    }
+    parked.current = true;
+  }, []);
 
-    const rawT = (scrollY - startScroll) / scrollRange;
-    const t = Math.max(0, Math.min(1, rawT));
+  const paint = useCallback((scrollY) => {
+    const portrait = portraitRef.current;
+    const badge = badgeRef.current;
+    const g = geom.current;
 
-    // Smooth cubic bezier easing
-    const easedT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    if (!portrait || !g || isMobile || !animate) {
+      park();
+      return;
+    }
+    parked.current = false;
 
-    if (t <= 0) {
-      // Hero state (at the top)
+    if (!g.hasServices) {
+      // Anchored cleanly to hero slot with subtle counter-parallax if services section is absent
       portrait.style.position = "absolute";
-      portrait.style.top = `${heroTop}px`;
-      portrait.style.left = `${heroLeft}px`;
-      portrait.style.width = `${heroWidth}px`;
-      portrait.style.height = `${heroHeight}px`;
-      portrait.style.transform = `translate3d(0, ${(scrollY * -0.05).toFixed(2)}px, 0)`;
+      portrait.style.top = `${g.heroTop}px`;
+      portrait.style.left = `${g.heroLeft}px`;
+      portrait.style.width = `${g.heroW}px`;
+      portrait.style.height = `${g.heroH}px`;
       portrait.style.borderRadius = "var(--r-xl)";
       portrait.style.zIndex = "4";
-
+      portrait.style.transform = `translate3d(0, ${(scrollY * -0.05).toFixed(2)}px, 0)`;
       if (badge) {
         badge.style.opacity = "1";
         badge.style.transform = "scale(1)";
       }
-    } else if (t < 1) {
-      // Transitioning state (smooth gliding from Hero center to Services right)
-      const curLeft = heroLeft + (servicesLeft - heroLeft) * easedT;
-      const curTop = heroTop + (servicesTop - heroTop) * easedT;
-      const curWidth = heroWidth + (servicesWidth - heroWidth) * easedT;
-      const curHeight = heroHeight + (servicesHeight - heroHeight) * easedT;
+      return;
+    }
 
-      portrait.style.position = "absolute";
-      portrait.style.top = `${curTop}px`;
-      portrait.style.left = `${curLeft}px`;
-      portrait.style.width = `${curWidth}px`;
-      portrait.style.height = `${curHeight}px`;
-      portrait.style.transform = "translate3d(0, 0, 0)";
-      portrait.style.borderRadius = "var(--r-xl)";
-      portrait.style.zIndex = "5";
+    const startScroll = Math.max(0, g.heroTop - 120);
+    const endScroll = g.servicesTop - 120;
+    const scrollRange = Math.max(100, endScroll - startScroll);
+    const t = Math.max(0, Math.min(1, (scrollY - startScroll) / scrollRange));
 
-      if (badge) {
-        const badgeFade = Math.max(0, 1 - t * 2.2);
-        badge.style.opacity = String(badgeFade);
+    // Smooth cubic in-out
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const left = g.heroLeft + (g.servicesLeft - g.heroLeft) * eased;
+    const top = g.heroTop + (g.servicesTop - g.heroTop) * eased;
+    const width = g.heroW + (g.servicesW - g.heroW) * eased;
+    const height = g.heroH + (g.servicesH - g.heroH) * eased;
+
+    portrait.style.position = "absolute";
+    portrait.style.top = `${top}px`;
+    portrait.style.left = `${left}px`;
+    portrait.style.width = `${width}px`;
+    portrait.style.height = `${height}px`;
+    portrait.style.borderRadius = "var(--r-xl)";
+    portrait.style.zIndex = t > 0 && t < 1 ? "5" : "4";
+    // The hero state keeps a slight counter-parallax; everything after it is
+    // driven by the interpolation above, so the transform stays identity.
+    portrait.style.transform =
+      t <= 0 ? `translate3d(0, ${(scrollY * -0.05).toFixed(2)}px, 0)` : "translate3d(0, 0, 0)";
+
+    if (badge) {
+      if (t <= 0) {
+        badge.style.opacity = "1";
+        badge.style.transform = "scale(1)";
+      } else if (t < 1) {
+        badge.style.opacity = String(Math.max(0, 1 - t * 2.2));
         badge.style.transform = `scale(${Math.max(0.4, 1 - t * 0.6)})`;
-      }
-    } else {
-      // Docked in Services section (sticky)
-      portrait.style.position = "absolute";
-      portrait.style.top = `${servicesTop}px`;
-      portrait.style.left = `${servicesLeft}px`;
-      portrait.style.width = `${servicesWidth}px`;
-      portrait.style.height = `${servicesHeight}px`;
-      portrait.style.transform = "translate3d(0, 0, 0)";
-      portrait.style.borderRadius = "var(--r-xl)";
-      portrait.style.zIndex = "4";
-
-      if (badge) {
+      } else {
         badge.style.opacity = "0";
         badge.style.transform = "scale(0.5)";
       }
     }
-  }, [animate, isMobile, heroSlotRef, servicesSlotRef]);
+  }, [animate, isMobile, park]);
 
-  // Hook into central Motion Kernel ticker
   useTicker(
     (frame) => {
+      // A terminal frame arrives when motion is switched off. There is no READ
+      // pass behind it, so measure once here — this is the one place a read and
+      // a write share a frame, and it happens at most once per toggle.
       if (frame.terminal) {
-        updatePosition(window.scrollY);
+        measure();
+        paint(window.scrollY);
         return;
       }
-      updatePosition(frame.scrollY);
+      paint(frame.scrollY);
     },
-    { active: animate && !isMobile, priority: PRIORITY.RENDER }
+    { active: animate && !isMobile && inViewport, priority: PRIORITY.RENDER }
   );
+
+  // Reduced motion or a narrow viewport: park the portrait in normal flow and
+  // leave it there. No ticker is running in either case.
+  useEffect(() => {
+    if (!animate || isMobile) {
+      parked.current = false;
+      park();
+    }
+  }, [animate, isMobile, park]);
 
   return (
     <div
-      ref={portraitRef}
+      ref={(node) => {
+        portraitRef.current = node;
+        viewportRef.current = node;
+      }}
       className="flowing-portrait-wrap"
-      aria-label={`Portrait of ${profile?.name || "Husnain Aslam"}`}
     >
-      <figure className="sig hero__figure flowing-portrait-figure" data-scene="poster">
-        <img
-          className="sig__poster flowing-portrait-img"
-          src="/assets/img/avatar-poster.webp"
-          alt={`Portrait of ${profile?.name || "Husnain Aslam"}`}
-          width="325"
-          height="440"
-          decoding="async"
-          fetchPriority="high"
-        />
-      </figure>
+      {/*
+        No aria-label here. This is a plain <div> with no role, so an
+        aria-label on it is not exposed to assistive technology at all — and
+        the poster inside already carries the accessible name (FR-AVT-11).
+      */}
+      <SignatureScene
+        className="hero__figure flowing-portrait-figure"
+        poster="/assets/img/avatar-poster.webp"
+        alt={`Portrait of ${profile?.name || "Husnain Aslam"}`}
+      />
       <div ref={badgeRef} className="flowing-portrait-badge">
         <SayHelloBadge float={false} className="badge--avatar" />
       </div>

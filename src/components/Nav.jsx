@@ -3,6 +3,7 @@ import { NavLink, Link, useLocation } from "react-router-dom";
 import { useTicker } from "../motion/hooks.js";
 import { PRIORITY } from "../motion/kernel.js";
 import MotionToggle from "./MotionToggle.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 import { FileText } from "./Icons.jsx";
 
 const LINKS = [
@@ -22,6 +23,7 @@ export default function Nav() {
   const lastY = useRef(0);
   const hidden = useRef(false);
   const [open, setOpen] = useState(false);
+  const burgerRef = useRef(null);
   const { pathname } = useLocation();
 
   // Close the mobile menu whenever the route changes.
@@ -55,13 +57,27 @@ export default function Nav() {
     navRef.current?.classList.remove("is-hidden");
   }, [open]);
 
+  /* Escape closes the open menu and hands focus back to the control that
+     opened it. Without this a keyboard visitor who opens the menu has no way
+     out of it except tabbing through every link. */
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      burgerRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
     <header className={`nav${open ? " is-open" : ""}`} id="nav" ref={navRef}>
       <Link className="nav__avatar" to="/" aria-label="Home">
         <img src="/assets/img/avatar-poster.webp" alt="Husnain Aslam" width="34" height="34" style={{ objectFit: "cover", width: "100%", height: "100%" }} />
       </Link>
 
-      <nav className="nav__links" id="navLinks">
+      <nav className="nav__links" id="navLinks" aria-label="Primary">
         {LINKS.map((l) => (
           <NavLink
             key={l.to}
@@ -72,6 +88,10 @@ export default function Nav() {
             {l.label}
           </NavLink>
         ))}
+        <div className="nav__mobile-theme">
+          <span className="small muted">Theme</span>
+          <ThemeToggle showLabel />
+        </div>
       </nav>
 
       <MotionToggle />
@@ -92,8 +112,10 @@ export default function Nav() {
       <button
         className="nav__burger"
         id="burger"
+        ref={burgerRef}
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
+        aria-controls="navLinks"
         onClick={() => setOpen((v) => !v)}
         type="button"
       >

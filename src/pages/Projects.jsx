@@ -5,9 +5,15 @@ import ProjectCard from "../components/ProjectCard.jsx";
 import ContactSection from "../components/ContactSection.jsx";
 import { ArrowUpRight } from "../components/Icons.jsx";
 import { useStore } from "../store.js";
+import { useDocumentMeta } from "../lib/meta.js";
 
 export default function Projects() {
-  const { getFeaturedProjects, getMoreProjects } = useStore();
+  const { profile, getFeaturedProjects, getMoreProjects } = useStore();
+  useDocumentMeta({
+    title: `Projects — ${profile?.name || "Husnain Aslam"}`,
+    description: "Featured systems and engineering projects in production and research.",
+  });
+
   const featuredProjects = getFeaturedProjects();
   const moreProjects = getMoreProjects();
 

@@ -14,6 +14,38 @@ const API_URL =
   import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
 const API_TIMEOUT_MS = 5000;
 
+/** Exported so diagnostics can name the URL they actually tried. */
+export { API_URL };
+
+/**
+ * Turn an axios failure into something a human can act on.
+ *
+ * The important distinction the browser refuses to make for us: a CORS
+ * rejection and a dead server look identical from JavaScript. Both arrive as
+ * a request with no response and no status — the spec deliberately hides
+ * cross-origin failure detail from the page. So rather than guess, this names
+ * both possibilities and prints the two facts that tell them apart: the API
+ * base being called, and the origin calling it. If those differ, CORS is in
+ * play; if they match, it cannot be.
+ */
+export function describeApiFailure(err) {
+  const base = API_URL;
+  const origin = typeof window !== "undefined" ? window.location.origin : "unknown";
+
+  if (err?.response) {
+    return `HTTP ${err.response.status} from ${base}`;
+  }
+  if (err?.code === "ECONNABORTED") {
+    return `no reply from ${base} within ${API_TIMEOUT_MS}ms`;
+  }
+
+  const crossOrigin = /^https?:\/\//i.test(base) && !base.startsWith(origin);
+  return crossOrigin
+    ? `no response from ${base} — the server is down, or its CORS settings reject ${origin}. ` +
+      `Set CORS_ORIGIN to ${origin} on the API, or point VITE_API_URL at a same-origin path.`
+    : `no response from ${base} (same origin, so this is not CORS — is the API deployed?)`;
+}
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: API_TIMEOUT_MS,
@@ -27,6 +59,37 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+/**
+ * An admin token can stop verifying while the panel is open: it expires after
+ * 24h, or the server's JWT_SECRET changed under it. Without this, the only
+ * symptom is "Failed to save" on every action — which reads as a broken save
+ * button, not as "you are signed out". The token is cleared and the app is
+ * told, so it can send the admin back to the login screen and say why.
+ *
+ * Deliberately does not fire for /auth/login: a 401 there means the password
+ * was wrong, and bouncing the user off the login page they are already on
+ * would just hide the error.
+ */
+export const SESSION_EXPIRED_EVENT = 'admin:session-expired';
+
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    const status = error?.response?.status;
+    const url = error?.config?.url || '';
+    const authFailure = status === 401 || status === 403;
+
+    if (authFailure && !url.includes('/auth/login') && localStorage.getItem('admin_token')) {
+      localStorage.removeItem('admin_token');
+      try {
+        sessionStorage.setItem('admin_session_expired', '1');
+      } catch { /* private mode — the event below still fires */ }
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const getProfile = () => api.get('/profile').then(res => res.data);
 export const updateProfile = (data) => api.put('/profile', data).then(res => res.data);

@@ -87,4 +87,13 @@ tmp/
 #
 #   public/assets/         Self-hosted fonts, images and the CV PDF. The site
 #                          makes no third-party requests for these by design.
+#
+#   src/data/              Written by `npm run snapshot` during every build,
+#     snapshot.generated.js  and it also looks like a build artefact. It is
+#                          imported by src/data/fallback.js, so ignoring it
+#                          breaks `npm run dev` on a fresh clone — the import
+#                          would not resolve. Commit it holding `null`, which
+#                          is what the script writes when there is no
+#                          DATABASE_URL; the build fills it in and there is no
+#                          need to commit the filled-in version.
 # ─────────────────────────────────────────────────────────────────────────

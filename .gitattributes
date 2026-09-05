@@ -1,0 +1,37 @@
+# Normalise line endings in the repository.
+#
+# Without this, a Windows checkout writes CRLF into the working tree while the
+# repository stores LF, and every file the platform touched shows up as
+# wholly rewritten — a 201-line LICENSE with 201 additions and 201 deletions,
+# and a diff nobody can read. `text=auto eol=lf` stores LF and checks out LF
+# everywhere, which is what the tooling in this project (Node, Vite, bash
+# scripts) expects anyway.
+#
+# After adding this file once:  git add --renormalize .
+* text=auto eol=lf
+
+# Shell scripts must keep LF or they will not run.
+*.sh   text eol=lf
+*.mjs  text eol=lf
+*.js   text eol=lf
+
+# Binaries: never touched, never diffed as text.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.gif    binary
+*.ico    binary
+*.pdf    binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.wasm   binary
+*.glb    binary
+*.mp4    binary
+*.docx   binary
+
+# Generated — collapse it in pull request diffs, it is not hand-written.
+api/_rag-index.js linguist-generated=true
+package-lock.json linguist-generated=true

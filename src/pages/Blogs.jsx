@@ -2,9 +2,15 @@ import Reveal from "../components/Reveal.jsx";
 import PostCard from "../components/PostCard.jsx";
 import ContactSection from "../components/ContactSection.jsx";
 import { useStore } from "../store.js";
+import { useDocumentMeta } from "../lib/meta.js";
 
 export default function Blogs() {
-  const { getPublishedPosts } = useStore();
+  const { profile, getPublishedPosts } = useStore();
+  useDocumentMeta({
+    title: `Blogs & Insights — ${profile?.name || "Husnain Aslam"}`,
+    description: "Writing on retrieval, evaluation, and production systems engineering.",
+  });
+
   const posts = getPublishedPosts();
   return (
     <>

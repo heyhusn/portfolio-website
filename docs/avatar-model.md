@@ -39,11 +39,11 @@ gltf-transform etc1s    s4.glb      s5.glb --quality 255
 gltf-transform draco    s5.glb      avatar.glb --method edgebreaker
 ```
 
-Then drop `avatar.glb` into this folder and run `npm run build`. The gate
+Then drop `avatar.glb` into `public/models/` and run `npm run build`. The gate
 rejects it if it transfers over 3 MB or if geometry or textures came through
 uncompressed, renames it with its content hash, and writes the manifest.
 
-With no `.glb` here the build still passes and the site runs the poster-only
+With no `.glb` in `public/models/` the build still passes and the site runs the poster-only
 path (FR-AVT-02). That is a supported state, not a broken one.
 
 ## The poster

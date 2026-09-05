@@ -40,7 +40,7 @@ const failures = [];
 /* ------------------------------------------------------------------ *
  * Minimal .glb reader — header + JSON chunk. No third-party parser.
  * ------------------------------------------------------------------ */
-function readGlbJson(buf) {
+export function readGlbJson(buf) {
   if (buf.length < 12) throw new Error("file is too short to be a .glb");
   const magic = buf.readUInt32LE(0);
   if (magic !== 0x46546c67) throw new Error("not a binary glTF (bad magic)");
@@ -63,7 +63,7 @@ function readGlbJson(buf) {
 /* ------------------------------------------------------------------ *
  * FR-AVT-05 — compression audit
  * ------------------------------------------------------------------ */
-function auditCompression(gltf, name) {
+export function auditCompression(gltf, name) {
   const used = new Set(gltf.extensionsUsed || []);
   const problems = [];
 
@@ -300,7 +300,16 @@ function finish() {
   console.log(GREEN("  model gate passed\n"));
 }
 
-main().catch((err) => {
-  console.error(RED(`model gate crashed: ${err.stack || err}`));
-  process.exit(1);
-});
+/* Only run the gate when this file is the process entry point. Importing it —
+   which the test suite does, to exercise readGlbJson and auditCompression
+   against synthesised GLBs — must not scan public/models/, rewrite the
+   manifest, or call process.exit(). */
+const invokedDirectly =
+  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (invokedDirectly) {
+  main().catch((err) => {
+    console.error(RED(`model gate crashed: ${err.stack || err}`));
+    process.exit(1);
+  });
+}

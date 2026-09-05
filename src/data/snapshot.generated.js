@@ -981,4 +981,4 @@ export const snapshot = {
 };
 
 /** Set by the build script to the ISO timestamp the snapshot was taken. */
-export const snapshotTakenAt = "2026-09-05T12:15:22.997Z";
+export const snapshotTakenAt = "2026-09-05T12:53:24.248Z";

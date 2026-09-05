@@ -175,14 +175,56 @@ main:focus-visible {
   .marquee::after { width: 44px; }
 }
 
-/* ---------- One portrait per screen ----------
+/* ---------- One portrait per screen & clean mobile services ----------
    The desktop design has a single portrait that flies from the hero and docks
    into the services slot. Mobile can't do that, so both slots render their own
-   copy — and the result was the same photograph twice on one page, which reads
-   as a mistake rather than as a design. The hero keeps it; the services column
-   is the accordion. */
+   copy — and the result was the same photograph twice on one page.
+   The hero keeps it; the services column is just the accordion, and the empty
+   media slot (with its 4/5 aspect ratio) is hidden so it doesn't leave an empty void. */
 @media (max-width: 820px) {
-  .services__media--mobile-only { display: none; }
+  .services__media-slot,
+  .services__media--mobile-only {
+    display: none !important;
+  }
+  .services {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+}
+
+/* ---------- Mobile Hero Layout & Headroom ----------
+   On mobile, the fixed navigation pill is centered at top: 20px (height ~54px).
+   Giving the hero ample headroom and centering .hero__top ensures the
+   "Available for work" chip and kicker do not collide or sit awkwardly behind
+   the fixed nav bar. */
+@media (max-width: 820px) {
+  .hero {
+    padding-top: 105px !important;
+    padding-bottom: 40px !important;
+  }
+  .hero__top {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    text-align: center !important;
+    margin-bottom: 24px !important;
+    width: 100% !important;
+  }
+  .hero__top .chip {
+    margin: 0 auto;
+  }
+  .hero__top .kicker {
+    margin: 0 auto;
+    text-align: center;
+    letter-spacing: 0.12em;
+  }
+  .hero__figure-slot {
+    width: min(76vw, 300px);
+    aspect-ratio: 325/440;
+    margin: 0 auto;
+  }
 }
 
 /* ---------- Card tilt (FULL tier only) ---------- */

@@ -37,15 +37,16 @@ export default function Nav() {
         el.classList.remove("is-hidden");
         return;
       }
-      const y = frame.scrollY;
       if (!open) {
-        const shouldHide = y > lastY.current && y > 220;
+        const y = frame.scrollY;
+        const hideThreshold = typeof window !== "undefined" && window.innerWidth <= 820 ? 70 : 220;
+        const shouldHide = y > lastY.current && y > hideThreshold;
         if (shouldHide !== hidden.current) {
           hidden.current = shouldHide;
           el.classList.toggle("is-hidden", shouldHide);
         }
+        lastY.current = y;
       }
-      lastY.current = y;
     },
     { priority: PRIORITY.READ }
   );

@@ -10,9 +10,8 @@ import axios from 'axios';
 // fallback to localhost:3001 meant the deployed chatbot asked every visitor's
 // own machine for an answer and always failed. VITE_API_URL still overrides,
 // for the case where the admin API is hosted somewhere else entirely.
-const API_URL =
-  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
-const API_TIMEOUT_MS = 5000;
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_TIMEOUT_MS = 20000;
 
 /** Exported so diagnostics can name the URL they actually tried. */
 export { API_URL };

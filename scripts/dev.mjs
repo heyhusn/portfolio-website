@@ -80,7 +80,7 @@ const hasDeps = fs.existsSync(path.join(backend, "node_modules"));
 console.log(`${COLORS.dim}site  → http://localhost:5173${COLORS.off}`);
 if (hasBackend && hasDeps) {
   console.log(`${COLORS.dim}api   → http://localhost:3001  (admin panel + RAG assistant)${COLORS.off}\n`);
-  run("api", COLORS.api, "node", ["server.mjs"], backend);
+  run("api", COLORS.api, "node", ["--watch", "server.mjs"], backend);
 } else if (hasBackend) {
   console.log(
     `\n${COLORS.warn}backend/node_modules is missing — the chatbot and admin panel will be offline.${COLORS.off}\n` +

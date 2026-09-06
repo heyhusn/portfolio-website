@@ -76,11 +76,16 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .map((s) => s.trim())
   .filter(Boolean);
 
+const isLocalDevOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
 app.use(
   cors({
     origin(origin, callback) {
       // Same-origin requests / curl / server-to-server calls send no Origin.
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
+        return callback(null, true);
+      }
       callback(new Error("Not allowed by CORS"));
     },
   })
@@ -110,7 +115,7 @@ const isArray = (v) => Array.isArray(v);
 // the one that needs to be rate-limited against brute-forcing the password.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: process.env.NODE_ENV === "production" ? 20 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts. Try again later." },

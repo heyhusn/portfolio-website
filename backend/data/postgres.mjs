@@ -27,7 +27,7 @@ export function client() {
   if (!url) throw new Error("DATABASE_URL is not set");
 
   sql = postgres(url, {
-    max: Number(process.env.PGPOOL_MAX) || 1,
+    max: Number(process.env.PGPOOL_MAX) || 10,
     idle_timeout: 20,
     connect_timeout: 10,
     prepare: false,
